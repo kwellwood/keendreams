@@ -32,7 +32,7 @@ updated
 =============================================================================
 */
 
-#include "ID_HEADS.H"
+#include "id_heads.h"
 #pragma hdrstop
 
 /*
@@ -1029,7 +1029,8 @@ void RF_NewPosition (unsigned x, unsigned y)
 
 void	RFL_OldRow (unsigned updatespot,unsigned count,unsigned step)
 {
-
+	// What is this doing?
+/*
 asm	mov	si,[updatespot]			// pointer inside each map plane
 asm	mov	cx,[count]				// number of tiles to clear
 asm	mov	dx,[step]				// move to next tile
@@ -1049,7 +1050,7 @@ asm	loop	clearcache
 
 asm	mov	ax,ss
 asm	mov	ds,ax
-
+*/
 }
 
 
@@ -1678,6 +1679,9 @@ void RF_Refresh (void)
 // with an UPDATETERMINATE at the end
 //
 	updatestart[otherpage] = newupdate = baseupdatestart[otherpage];
+	memset(newupdate, 0, (UPDATESCREENSIZE-2)/2);
+	*(word*)(&newupdate[UPDATESCREENSIZE]) = UPDATETERMINATE;
+	/* XXX: Double check this.
 asm	mov	ax,ds
 asm	mov	es,ax
 asm	xor	ax,ax
@@ -1685,7 +1689,7 @@ asm	mov	cx,(UPDATESCREENSIZE-2)/2
 asm	mov	di,[newupdate]
 asm	rep	stosw
 asm	mov	[WORD PTR es:di],UPDATETERMINATE
-
+*/
 	screenpage ^= 1;
 	otherpage ^= 1;
 	bufferofs = screenstart[otherpage];

@@ -17,7 +17,7 @@
  */
 
 // KD_ACT1.C
-#include "KD_DEF.H"
+#include "kd_def.h"
 #pragma hdrstop
 
 
@@ -1401,14 +1401,14 @@ void FinishThink (objtype *ob)
 void BoobusThink (objtype *ob)
 {
 	unsigned	move;
-	boolean	inline = false;
+	boolean	isinline = false;
 
 	if (ob->left > player->right)
 		ob->xdir = -1;
 	else if (ob->right < player->left)
 		ob->xdir = 1;
 	else
-		inline = true;
+		isinline = true;
 
 	if (player->top < ob->bottom && player->bottom > ob->top)
 	{
@@ -1418,7 +1418,7 @@ void BoobusThink (objtype *ob)
 	else
 	{
 	// above or below player, so get directly in line and jump
-		if (inline)
+		if (isinline)
 		{
 			if (ob->y < player->y)
 			{

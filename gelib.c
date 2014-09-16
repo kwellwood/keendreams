@@ -16,7 +16,7 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include "KD_DEF.H"
+#include "kd_def.h"
 
 #define BIO_BUFFER_LEN	(512)
 
@@ -45,13 +45,13 @@ int UnpackEGAShapeToScreen(struct Shape *SHP,int startx,int starty)
 
 	NotWordAligned = SHP->BPR & 1;
 	startx>>=3;
-	Src = MK_FP(SHP->Data,0);
+	Src = (SHP->Data,0);
 	currenty = starty;
 	Plane = 0;
 	Height = SHP->bmHdr.h;
 	while (Height--)
 	{
-		Dst[0] = (MK_FP(0xA000,displayofs));
+		Dst[0] = displayofs; //XXX: EGA stuff, needs hackery.//(MK_FP(0xA000,displayofs));
 		Dst[0] += ylookup[currenty];
 		Dst[0] += startx;
 		for (loop=1; loop<SHP->bmHdr.d; loop++)
@@ -116,7 +116,7 @@ long Verify(char *filename)
 	int handle;
 	long size;
 
-	if ((handle=open(filename,O_BINARY))==-1)
+	if ((handle=open(filename,0))==-1)
 		return (0);
 	size=filelength(handle);
 	close(handle);
@@ -158,7 +158,8 @@ byte bio_readch(BufferedIO *bio)
 		bio_fillbuffer(bio);
 	}
 
-	buffer = MK_FP(bio->buffer,bio->offset++);
+	// TODO: segment hackery
+	buffer = (bio->buffer,bio->offset++);
 
 	return(*buffer);
 }
@@ -192,7 +193,8 @@ void bio_fillbuffer(BufferedIO *bio)
 			bytes_requested = bio_length;
 
 		read(bio->handle,near_buffer,bytes_requested);
-		_fmemcpy(MK_FP(bio->buffer,bytes_read),near_buffer,bytes_requested);
+		//XXX: Segment hackery
+		memcpy((bio->buffer,bytes_read),near_buffer,bytes_requested);
 
 		bio_length -= bytes_requested;
 		bytes_read += bytes_requested;
@@ -203,26 +205,32 @@ void bio_fillbuffer(BufferedIO *bio)
 //
 // SwapLong()
 //
-void SwapLong(long far *Var)
+void SwapLong(long *Var)
 {
+	//XXX: Replace with SDL endian fns
+	/*
 	asm		les	bx,Var
 	asm		mov	ax,[es:bx]
 	asm		xchg	ah,al
 	asm		xchg	ax,[es:bx+2]
 	asm		xchg	ah,al
 	asm 		mov	[es:bx],ax
+	*/
 }
 
 ///////////////////////////////////////////////////////////////////////////
 //
 // SwapWord()
 //
-void SwapWord(unsigned int far *Var)
+void SwapWord(unsigned far *Var)
 {
+	//XXX: Replace with SDL endian fns
+	/*
 	asm		les	bx,Var
 	asm		mov	ax,[es:bx]
 	asm		xchg	ah,al
 	asm		mov	[es:bx],ax
+	*/
 }
 
 ////////////////////////////////////////////////////////////////////////////

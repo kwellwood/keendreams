@@ -19,24 +19,24 @@
 // ID_CA.H
 
 #ifndef __TYPES__
-#include "ID_TYPES.H"
+#include "id_types.h"
 #endif
 
 #ifndef __ID_MM__
-#include "ID_MM.H"
+#include "id_mm.h"
 #endif
 
 #ifndef __ID_GLOB__
-#include "ID_GLOB.H"
+#include "id_glob.h"
 #endif
 
 #define __ID_CA__
 
 //===========================================================================
 
-#define MAPHEADERLINKED
-#define GRHEADERLINKED
-#define AUDIOHEADERLINKED
+//#define MAPHEADERLINKED
+//#define GRHEADERLINKED
+//#define AUDIOHEADERLINKED
 
 #define NUMMAPS	30
 
@@ -68,20 +68,20 @@ typedef	struct
 
 //===========================================================================
 
-extern	byte 		_seg	*tinf;
-extern	int			mapon;
+extern	byte 		*tinf;
+extern	int		mapon;
 
-extern	unsigned	_seg	*mapsegs[3];
-extern	maptype		_seg	*mapheaderseg[NUMMAPS];
-extern	byte		_seg	*audiosegs[NUMSNDCHUNKS];
-extern	void		_seg	*grsegs[NUMCHUNKS];
+extern	unsigned	*mapsegs[3];
+extern	maptype		*mapheaderseg[NUMMAPS];
+extern	byte		*audiosegs[NUMSNDCHUNKS];
+extern	void		*grsegs[NUMCHUNKS];
 
 extern	byte		grneeded[NUMCHUNKS];
 extern	byte		ca_levelbit,ca_levelnum;
 
 extern	char		*titleptr[8];
 
-extern	int			profilehandle;
+extern	int		profilehandle;
 
 //===========================================================================
 
@@ -92,15 +92,15 @@ void CAL_ShiftSprite (unsigned segment,unsigned source,unsigned dest,
 
 //===========================================================================
 
-boolean CA_FarRead (int handle, byte far *dest, long length);
-boolean CA_FarWrite (int handle, byte far *source, long length);
+boolean CA_FarRead (int handle, byte  *dest, long length);
+boolean CA_FarWrite (int handle, byte  *source, long length);
 boolean CA_LoadFile (char *filename, memptr *ptr);
 
-long CA_RLEWCompress (unsigned huge *source, long length, unsigned huge *dest,
-  unsigned rlewtag);
+long CA_RLEWCompress (word *source, int length, word  *dest,
+  word rlewtag);
 
-void CA_RLEWexpand (unsigned huge *source, unsigned huge *dest,long length,
-  unsigned rlewtag);
+void CA_RLEWexpand (word  *source, word  *dest, int length,
+  word rlewtag);
 
 void CA_Startup (void);
 void CA_Shutdown (void);

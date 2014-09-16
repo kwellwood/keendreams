@@ -18,7 +18,7 @@
 
 // ID_VW.C
 
-#include "ID_HEADS.H"
+#include "id_heads.h"
 
 /*
 =============================================================================
@@ -111,7 +111,6 @@ void	VW_Startup (void)
 {
 	int i;
 
-	asm	cld;
 
 	videocard = 0;
 
@@ -177,14 +176,13 @@ void VW_SetScreenMode (int grmode)
 {
 	switch (grmode)
 	{
-	  case TEXTGR:  _AX = 3;
-		  geninterrupt (0x10);
+	  case TEXTGR:  
 		  screenseg=0xb000;
 		  break;
-	  case CGAGR: _AX = 4;
+	  case CGAGR: 
 		  geninterrupt (0x10);		// screenseg is actually a main mem buffer
 		  break;
-	  case EGAGR: _AX = 0xd;
+	  case EGAGR: 
 		  geninterrupt (0x10);
 		  screenseg=0xa000;
 		  break;
@@ -226,10 +224,7 @@ char colors[7][17]=
 
 void VW_ColorBorder (int color)
 {
-	_AH=0x10;
-	_AL=1;
-	_BH=color;
-	geninterrupt (0x10);
+	// XXX: Do interupt.
 	bordercolor = color;
 }
 
@@ -237,10 +232,7 @@ void VW_SetDefaultColors(void)
 {
 #if GRMODE == EGAGR
 	colors[3][16] = bordercolor;
-	_ES=FP_SEG(&colors[3]);
-	_DX=FP_OFF(&colors[3]);
-	_AX=0x1002;
-	geninterrupt(0x10);
+	//&colors[3] is the pal
 	screenfaded = false;
 #endif
 }
@@ -254,10 +246,7 @@ void VW_FadeOut(void)
 	for (i=3;i>=0;i--)
 	{
 	  colors[i][16] = bordercolor;
-	  _ES=FP_SEG(&colors[i]);
-	  _DX=FP_OFF(&colors[i]);
-	  _AX=0x1002;
-	  geninterrupt(0x10);
+	  // XXX: geninterrupt(0x10);
 	  VW_WaitVBL(6);
 	}
 	screenfaded = true;
@@ -273,10 +262,7 @@ void VW_FadeIn(void)
 	for (i=0;i<4;i++)
 	{
 	  colors[i][16] = bordercolor;
-	  _ES=FP_SEG(&colors[i]);
-	  _DX=FP_OFF(&colors[i]);
-	  _AX=0x1002;
-	  geninterrupt(0x10);
+	  // XXX: Do interupt
 	  VW_WaitVBL(6);
 	}
 	screenfaded = false;
@@ -291,10 +277,7 @@ void VW_FadeUp(void)
 	for (i=3;i<6;i++)
 	{
 	  colors[i][16] = bordercolor;
-	  _ES=FP_SEG(&colors[i]);
-	  _DX=FP_OFF(&colors[i]);
-	  _AX=0x1002;
-	  geninterrupt(0x10);
+	  //update pal
 	  VW_WaitVBL(6);
 	}
 	screenfaded = true;
@@ -309,10 +292,7 @@ void VW_FadeDown(void)
 	for (i=5;i>2;i--)
 	{
 	  colors[i][16] = bordercolor;
-	  _ES=FP_SEG(&colors[i]);
-	  _DX=FP_OFF(&colors[i]);
-	  _AX=0x1002;
-	  geninterrupt(0x10);
+	  //update pal
 	  VW_WaitVBL(6);
 	}
 	screenfaded = false;
@@ -341,11 +321,6 @@ void VW_SetLineWidth (int width)
 //
 // set wide virtual screen
 //
-asm	mov	dx,CRTC_INDEX
-asm	mov	al,CRTC_OFFSET
-asm mov	ah,[BYTE PTR width]
-asm	shr	ah,1
-asm	out	dx,ax
 #endif
 
 //
@@ -378,14 +353,7 @@ void	VW_ClearVideo (int color)
 	EGAWRITEMODE(2);
 	EGAMAPMASK(15);
 #endif
-
-asm	mov	es,[screenseg]
-asm	xor	di,di
-asm	mov	cx,0xffff
-asm	mov	al,[BYTE PTR color]
-asm	rep	stosb
-asm	stosb
-
+// XXX memset vmem 0xffff bytes to zero
 #if GRMODE == EGAGR
 	EGAWRITEMODE(0);
 #endif
@@ -537,55 +505,10 @@ void VW_Hlin(unsigned xl, unsigned xh, unsigned y, unsigned color)
 
 	maskleft&=maskright;
 
-	asm	mov	es,[screenseg]
-	asm	mov	di,[dest]
-
-	asm	mov	dx,GC_INDEX
-	asm	mov	al,GC_BITMASK
-	asm	mov	ah,[BYTE PTR maskleft]
-	asm	out	dx,ax		// mask off pixels
-
-	asm	mov	al,[BYTE PTR color]
-	asm	xchg	al,[es:di]	// load latches and write pixels
-
+	// XXX old asm
 	goto	done;
   }
-
-asm	mov	es,[screenseg]
-asm	mov	di,[dest]
-asm	mov	dx,GC_INDEX
-asm	mov	bh,[BYTE PTR color]
-
-//
-// draw left side
-//
-asm	mov	al,GC_BITMASK
-asm	mov	ah,[BYTE PTR maskleft]
-asm	out	dx,ax		// mask off pixels
-
-asm	mov	al,bh
-asm	mov	bl,[es:di]	// load latches
-asm	stosb
-
-//
-// draw middle
-//
-asm	mov	ax,GC_BITMASK + 255*256
-asm	out	dx,ax		// no masking
-
-asm	mov	al,bh
-asm	mov	cx,[mid]
-asm	rep	stosb
-
-//
-// draw right side
-//
-asm	mov	al,GC_BITMASK
-asm	mov	ah,[BYTE PTR maskright]
-asm	out	dx,ax		// mask off pixels
-
-asm	xchg	bh,[es:di]	// load latches and write pixels
-
+  // XXX old asm
 done:
 	EGABITMASK(255);
 	EGAWRITEMODE(0);
@@ -618,7 +541,6 @@ void VW_Hlin(unsigned xl, unsigned xh, unsigned y, unsigned color)
 
 	mid = xhb-xlb-1;
 	dest = bufferofs+ylookup[y]+xlb;
-asm	mov	es,[screenseg]
 
 	if (xlb==xhb)
 	{
@@ -627,53 +549,8 @@ asm	mov	es,[screenseg]
 	//
 		maskleft&=maskright;
 
-		asm	mov	ah,[maskleft]
-		asm	mov	bl,[BYTE PTR color]
-		asm	and	bl,[maskleft]
-		asm	not	ah
-
-		asm	mov	di,[dest]
-
-		asm	mov	al,[es:di]
-		asm	and	al,ah			// mask out pixels
-		asm	or	al,bl			// or in color
-		asm	mov	[es:di],al
 		return;
 	}
-
-asm	mov	di,[dest]
-asm	mov	bh,[BYTE PTR color]
-
-//
-// draw left side
-//
-asm	mov	ah,[maskleft]
-asm	mov	bl,bh
-asm	and	bl,[maskleft]
-asm	not	ah
-asm	mov	al,[es:di]
-asm	and	al,ah			// mask out pixels
-asm	or	al,bl			// or in color
-asm	stosb
-
-//
-// draw middle
-//
-asm	mov	al,bh
-asm	mov	cx,[mid]
-asm	rep	stosb
-
-//
-// draw right side
-//
-asm	mov	ah,[maskright]
-asm	mov	bl,bh
-asm	and	bl,[maskright]
-asm	not	ah
-asm	mov	al,[es:di]
-asm	and	al,ah			// mask out pixels
-asm	or	al,bl			// or in color
-asm	stosb
 }
 #endif
 
@@ -730,69 +607,9 @@ void VW_Bar (unsigned x, unsigned y, unsigned width, unsigned height,
 
 		maskleft&=maskright;
 
-	asm	mov	es,[screenseg]
-	asm	mov	di,[dest]
-
-	asm	mov	dx,GC_INDEX
-	asm	mov	al,GC_BITMASK
-	asm	mov	ah,[BYTE PTR maskleft]
-	asm	out	dx,ax		// mask off pixels
-
-	asm	mov	ah,[BYTE PTR color]
-	asm	mov	dx,[linewidth]
-yloop1:
-	asm	mov	al,ah
-	asm	xchg	al,[es:di]	// load latches and write pixels
-	asm	add	di,dx			// down to next line
-	asm	dec	[height]
-	asm	jnz	yloop1
-
 		goto	done;
 	}
 
-asm	mov	es,[screenseg]
-asm	mov	di,[dest]
-asm	mov	bh,[BYTE PTR color]
-asm	mov	dx,GC_INDEX
-asm	mov	si,[linewidth]
-asm	sub	si,[mid]			// add to di at end of line to get to next scan
-asm	dec	si
-
-//
-// draw left side
-//
-yloop2:
-asm	mov	al,GC_BITMASK
-asm	mov	ah,[BYTE PTR maskleft]
-asm	out	dx,ax		// mask off pixels
-
-asm	mov	al,bh
-asm	mov	bl,[es:di]	// load latches
-asm	stosb
-
-//
-// draw middle
-//
-asm	mov	ax,GC_BITMASK + 255*256
-asm	out	dx,ax		// no masking
-
-asm	mov	al,bh
-asm	mov	cx,[mid]
-asm	rep	stosb
-
-//
-// draw right side
-//
-asm	mov	al,GC_BITMASK
-asm	mov	ah,[BYTE PTR maskright]
-asm	out	dx,ax		// mask off pixels
-
-asm	mov	al,bh
-asm	xchg	al,[es:di]	// load latches and write pixels
-
-asm	add	di,si		// move to start of next line
-asm	dec	[height]
-asm	jnz	yloop2
 
 done:
 	EGABITMASK(255);
@@ -862,70 +679,7 @@ void VW_CGAFullUpdate (void)
 
 	displayofs = bufferofs+panadjust;
 
-asm	mov	ax,0xb800
-asm	mov	es,ax
-
-asm	mov	si,[displayofs]
-asm	xor	di,di
-
-asm	mov	bx,100				// pairs of scan lines to copy
-asm	mov	dx,[linewidth]
-asm	sub	dx,80
-
-asm	mov	ds,[screenseg]
-asm	test	si,1
-asm	jz	evenblock
-
-//
-// odd source
-//
-asm	mov	ax,39				// words accross screen
-copytwolineso:
-asm	movsb
-asm	mov	cx,ax
-asm	rep	movsw
-asm	movsb
-asm	add	si,dx
-asm	add	di,0x2000-80		// go to the interlaced bank
-asm	movsb
-asm	mov	cx,ax
-asm	rep	movsw
-asm	movsb
-asm	add	si,dx
-asm	sub	di,0x2000			// go to the non interlaced bank
-
-asm	dec	bx
-asm	jnz	copytwolineso
-asm	jmp	blitdone
-
-//
-// even source
-//
-evenblock:
-asm	mov	ax,40				// words accross screen
-copytwolines:
-asm	mov	cx,ax
-asm	rep	movsw
-asm	add	si,dx
-asm	add	di,0x2000-80		// go to the interlaced bank
-asm	mov	cx,ax
-asm	rep	movsw
-asm	add	si,dx
-asm	sub	di,0x2000			// go to the non interlaced bank
-
-asm	dec	bx
-asm	jnz	copytwolines
-
-blitdone:
-asm	mov	ax,ss
-asm	mov	ds,ax
-asm	mov	es,ax
-
-asm	xor	ax,ax				// clear out the update matrix
-asm	mov	cx,UPDATEWIDE*UPDATEHIGH/2
-
-asm	mov	di,[baseupdateptr]
-asm	rep	stosw
+	// XXX fascinating CGA code, read in orig cource
 
 	updateptr = baseupdateptr;
 	*(unsigned *)(updateptr + UPDATEWIDE*PORTTILESHIGH) = UPDATETERMINATE;
@@ -1194,22 +948,7 @@ void VW_UpdateScreen (void)
 #if GRMODE == EGAGR
 	VWL_UpdateScreenBlocks();
 
-asm	cli
-asm	mov	cx,[displayofs]
-asm	add	cx,[panadjust]
-asm	mov	dx,CRTC_INDEX
-asm	mov	al,0ch		// start address high register
-asm	out	dx,al
-asm	inc	dx
-asm	mov	al,ch
-asm	out	dx,al
-asm	dec	dx
-asm	mov	al,0dh		// start address low register
-asm	out	dx,al
-asm	mov	al,cl
-asm	inc	dx
-asm	out	dx,al
-asm	sti
+	// XXX set displayofs panadjust
 
 #endif
 #if GRMODE == CGAGR

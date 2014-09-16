@@ -18,7 +18,7 @@
 
 // KD_PLAY.C
 
-#include "KD_DEF.H"
+#include "kd_def.h"
 #pragma	hdrstop
 
 /*
@@ -442,7 +442,7 @@ void RemoveObj (objtype *gone)
 //===========================================================================
 
 
-void near HandleInfo (void)
+void HandleInfo (void)
 {
 	switch (maptile)
 	{
@@ -573,7 +573,6 @@ void ScanInfoPlane (void)
 
 	memset (lumpneeded,0,sizeof(lumpneeded));
 
-#if 0
 	start = mapsegs[2];
 	for (y=0;y<mapheight;y++)
 		for (x=0;x<mapwidth;x++)
@@ -582,37 +581,11 @@ void ScanInfoPlane (void)
 			if (!tile)
 				continue;
 		}
-#endif
 
 //
 // This doesn't really need to be in asm.  I thought it was a bottleneck,
 // but I was wrong...
 //
-
-	asm	mov	es,[WORD PTR mapsegs+4]
-	asm	xor	si,si
-	asm	mov	[mapy],0
-	asm	mov	ax,[mapheight]
-	asm	mov	[mapycount],ax
-yloop:
-	asm	mov	[mapx],0
-	asm	mov	ax,[mapwidth]
-	asm	mov	[mapxcount],ax
-xloop:
-	asm	mov	ax,[es:si]
-	asm	or	ax,ax
-	asm	jz	nothing
-	asm	mov	[maptile],ax
-	HandleInfo ();						// si is saved
-	asm	mov	es,[WORD PTR mapsegs+4]
-nothing:
-	asm	inc	[mapx]
-	asm	add	si,2
-	asm	dec	[mapxcount]
-	asm	jnz	xloop
-	asm	inc	[mapy]
-	asm	dec	[mapycount]
-	asm	jnz	yloop
 
 	for (i=0;i<NUMLUMPS;i++)
 		if (lumpneeded[i])
@@ -1653,7 +1626,6 @@ void PlayLoop (void)
 
 void GameFinale (void)
 {
-struct date d;
 
 	VW_FixRefreshBuffer ();
 

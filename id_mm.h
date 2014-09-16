@@ -23,7 +23,7 @@
 #define __ID_MM__
 
 #ifndef __TYPES__
-#include "ID_TYPES.H"
+#include "id_types.h"
 #endif
 
 void Quit (char *error);
@@ -40,7 +40,7 @@ void Quit (char *error);
 
 //==========================================================================
 
-typedef void _seg * memptr;
+typedef void   *memptr;
 
 typedef struct
 {

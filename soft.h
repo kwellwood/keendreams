@@ -19,7 +19,7 @@
 //memptr InitBufferedIO(int handle, BufferedIO *bio);
 //void FreeBufferedIO(BufferedIO *bio);
 //byte bio_readch(BufferedIO *bio);
-
+struct Shape;
 unsigned long BLoad(char *SourceFile, memptr *DstPtr);
 memptr LoadLIBFile(char *LibName,char *FileName,memptr *MemPtr);
 int LoadLIBShape(char *SLIB_Filename, char *Filename,struct Shape *SHP);

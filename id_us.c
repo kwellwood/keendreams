@@ -45,7 +45,7 @@
 
 // DEBUG - handle LPT3 for Sound Source
 
-#include "ID_HEADS.H"
+#include "id_heads.h"
 
 #define CTL_M_ADLIBUPPIC	CTL_S_ADLIBUPPIC
 #define CTL_M_ADLIBDNPIC	CTL_S_ADLIBDNPIC
@@ -134,94 +134,12 @@ static	HighScore	Scores[MaxScores] =
 //			from DOS.
 //
 ///////////////////////////////////////////////////////////////////////////
-#pragma	warn	-par
-#pragma	warn	-rch
 int
 USL_HardError(word errval,int ax,int bp,int si)
 {
-#define IGNORE  0
-#define RETRY   1
-#define	ABORT   2
-extern	void	ShutdownId(void);
-
-static	char		buf[32];
-static	WindowRec	wr;
-static	boolean		oldleavedriveon;
-		int			di;
-		char		c,*s,*t;
-
-
-	di = _DI;
-
-	oldleavedriveon = LeaveDriveOn;
-	LeaveDriveOn = false;
-
-	if (ax < 0)
-		s = "Device Error";
-	else
-	{
-		if ((di & 0x00ff) == 0)
-			s = "Drive ~ is Write Protected";
-		else
-			s = "Error on Drive ~";
-		for (t = buf;*s;s++,t++)	// Can't use sprintf()
-			if ((*t = *s) == '~')
-				*t = (ax & 0x00ff) + 'A';
-		*t = '\0';
-		s = buf;
-	}
-
-	c = peekb(0x40,0x49);	// Get the current screen mode
-	if ((c < 4) || (c == 7))
-		goto oh_kill_me;
-
-	// DEBUG - handle screen cleanup
-
-	US_SaveWindow(&wr);
-	US_CenterWindow(30,3);
-	US_CPrint(s);
-	US_CPrint("(R)etry or (A)bort?");
-	VW_UpdateScreen();
-	IN_ClearKeysDown();
-
-asm	sti	// Let the keyboard interrupts come through
-
-	while (true)
-	{
-		switch (IN_WaitForASCII())
-		{
-		case key_Escape:
-		case 'a':
-		case 'A':
-			goto oh_kill_me;
-			break;
-		case key_Return:
-		case key_Space:
-		case 'r':
-		case 'R':
-			US_ClearWindow();
-			VW_UpdateScreen();
-			US_RestoreWindow(&wr);
-			LeaveDriveOn = oldleavedriveon;
-			return(RETRY);
-			break;
-		}
-	}
-
-oh_kill_me:
-	abortprogram = s;
-	ShutdownId();
-	fprintf(stderr,"Terminal Error: %s\n",s);
-	if (tedlevel)
-		fprintf(stderr,"You launched from TED. I suggest that you reboot...\n");
-
-	return(ABORT);
-#undef	IGNORE
-#undef	RETRY
-#undef	ABORT
+	//XXX: Implement
+	exit(-1);
 }
-#pragma	warn	+par
-#pragma	warn	+rch
 
 ///////////////////////////////////////////////////////////////////////////
 //
@@ -275,7 +193,7 @@ USL_ReadConfig(void)
 	SMMode		sm;
 	ControlType	ctl;
 
-	if ((file = open("KDREAMS.CFG",O_BINARY | O_RDONLY)) != -1)
+	if ((file = open("KDREAMS.CFG", O_RDONLY)) != -1)
 	{
 		read(file,Scores,sizeof(HighScore) * MaxScores);
 		read(file,&sd,sizeof(sd));
@@ -312,7 +230,7 @@ USL_WriteConfig(void)
 {
 	int	file;
 
-	file = open("KDREAMS.CFG", O_CREAT | O_BINARY | O_WRONLY,
+	file = open("KDREAMS.CFG", O_CREAT | O_WRONLY,
 				S_IREAD | S_IWRITE | S_IFREG);
 	if (file != -1)
 	{
@@ -347,7 +265,7 @@ USL_CheckSavedGames(void)
 	{
 		filename = USL_GiveSaveName(i);
 		ok = false;
-		if ((file = open(filename,O_BINARY | O_RDONLY)) != -1)
+		if ((file = open(filename, O_RDONLY)) != -1)
 		{
 			if
 			(
@@ -462,14 +380,6 @@ US_CheckParm(char *parm,char **strings)
 static void
 USL_ScreenDraw(word x,word y,char *s,byte attr)
 {
-	byte	far *screen;
-
-	screen = MK_FP(0xb800,(x * 2) + (y * 80 * 2));
-	while (*s)
-	{
-		*screen++ = *s++;
-		*screen++ = attr;
-	}
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -481,18 +391,6 @@ USL_ScreenDraw(word x,word y,char *s,byte attr)
 static void
 USL_ClearTextScreen(void)
 {
-	// Set to 80x25 color text mode
-	_AL = 3;				// Mode 3
-	_AH = 0x00;
-	geninterrupt(0x10);
-
-	// Use BIOS to move the cursor to the bottom of the screen
-	_AH = 0x0f;
-	geninterrupt(0x10);		// Get current video mode into _BH
-	_DL = 0;				// Lefthand side of the screen
-	_DH = 24;				// Bottom row
-	_AH = 0x02;
-	geninterrupt(0x10);
 
 }
 
@@ -506,17 +404,7 @@ USL_ClearTextScreen(void)
 void
 US_TextScreen(void)
 {
-	word	i,
-			sx,sy;
-
-	USL_ClearTextScreen();
-
-#define	scr_rowcol(y,x)	{sx = (x) - 1;sy = (y) - 1;}
-#define	scr_aputs(s,a)	USL_ScreenDraw(sx,sy,(s),(a))
-#include "ID_US_S.c"
-#undef	scr_rowcol
-#undef	scr_aputs
-
+	int i;
 	// Check for TED launching here
 	for (i = 1;i < _argc;i++)
 	{
@@ -543,16 +431,6 @@ US_TextScreen(void)
 static void
 USL_Show(word x,word y,word w,boolean show,boolean hilight)
 {
-	byte	far *screen;
-
-	screen = MK_FP(0xb800,((x - 1) * 2) + (y * 80 * 2));
-	*screen++ = show? 251 : ' ';	// Checkmark char or space
-	*screen = 0x48;
-	if (show && hilight)
-	{
-		for (w++;w--;screen += 2)
-			*screen = 0x4f;
-	}
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -564,12 +442,6 @@ USL_Show(word x,word y,word w,boolean show,boolean hilight)
 static void
 USL_ShowMem(word x,word y,long mem)
 {
-	char	buf[16];
-	word	i;
-
-	for (i = strlen(ltoa(mem,buf,10));i < 5;i++)
-		USL_ScreenDraw(x++,y," ",0x48);
-	USL_ScreenDraw(x,y,buf,0x48);
 }
 
 
@@ -1090,15 +962,12 @@ US_LineInput(int x,int y,char *buf,char *def,boolean escok,
 		if (cursorvis)
 			USL_XORICursor(x,y,s,cursor);
 
-	asm	pushf
-	asm	cli
-
+		// XXX: LastScan/LastASCII are updated by an interrupt, needs
+		// replacing.
 		sc = LastScan;
 		LastScan = sc_None;
 		c = LastASCII;
 		LastASCII = key_None;
-
-	asm	popf
 
 		switch (sc)
 		{
@@ -1507,8 +1376,6 @@ USL_HandleError(int num)
 		strcat(buf,"Unknown");
 	else if (num == ENOMEM)
 		strcat(buf,"Disk is Full");
-	else if (num == EINVFMT)
-		strcat(buf,"File is Incomplete");
 	else
 		strcat(buf,sys_errlist[num]);
 
@@ -2125,11 +1992,9 @@ USL_CtlCKbdButtonCustom(UserCall call,word i,word n)
 			break;
 		}
 
-		asm	pushf
-		asm	cli
+		// XXX: LastScan use
 		if (LastScan == sc_LShift)
 			LastScan = sc_None;
-		asm	popf
 	} while (!(scan = LastScan));
 	IN_ClearKey(scan);
 	if (scan != sc_Escape)
@@ -2772,7 +2637,7 @@ USL_CtlDLButtonCustom(UserCall call,word i,word n)
 		VW_UpdateScreen();
 
 		err = 0;
-		if ((file = open(filename,O_BINARY | O_RDONLY)) != -1)
+		if ((file = open(filename, O_RDONLY)) != -1)
 		{
 			if (read(file,game,sizeof(*game)) == sizeof(*game))
 			{
@@ -2850,7 +2715,7 @@ USL_CtlDSButtonCustom(UserCall call,word i,word n)
 		LeaveDriveOn++;
 		filename = USL_GiveSaveName(n / 2);
 		err = 0;
-		file = open(filename,O_CREAT | O_BINARY | O_WRONLY,
+		file = open(filename,O_CREAT | O_WRONLY,
 					S_IREAD | S_IWRITE | S_IFREG);
 		if (file != -1)
 		{

@@ -28,8 +28,8 @@ extern void (*LZH_DecompressDisplayVector)();
 //===========================================================================
 
 
-long lzhCompress(void far *infile, void far *outfile,unsigned long DataLength,unsigned PtrTypes);
-long lzhDecompress(void far *infile, void far *outfile, unsigned long OrginalLength, unsigned long CompressLength, unsigned PtrTypes);
+long lzhCompress(void  *infile, void  *outfile,unsigned long DataLength,unsigned PtrTypes);
+long lzhDecompress(void  *infile, void  *outfile, unsigned long OrginalLength, unsigned long CompressLength, unsigned PtrTypes);
 
 
 
