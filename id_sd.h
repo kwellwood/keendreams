@@ -24,7 +24,7 @@
 //
 
 #ifndef	__TYPES__
-#include "ID_Types.h"
+#include "id_types.h"
 #endif
 
 #ifndef	__ID_SD__
@@ -173,7 +173,7 @@ extern	void	SD_Startup(void),
 				SD_PlaySound(word sound),
 				SD_StopSound(void),
 				SD_WaitSoundDone(void),
-				SD_StartMusic(Ptr music),	// DEBUG - this shouldn't be a Ptr
+				SD_StartMusic(MusicGroup *music),	// DEBUG - this shouldn't be a Ptr
 				SD_FadeOutMusic(void),
 				SD_SetUserHook(void (*hook)(void));
 extern	boolean	SD_MusicPlaying(void),

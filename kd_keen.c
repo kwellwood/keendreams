@@ -18,7 +18,7 @@
 
 // KD_KEEN.C
 
-#include "KD_DEF.H"
+#include "kd_def.h"
 #pragma hdrstop
 
 /*
@@ -178,47 +178,8 @@ void	FixScoreBox (void)
 
 void MemDrawChar (int char8,byte far *dest,unsigned width,unsigned planesize)
 {
-asm	mov	si,[char8]
-asm	shl	si,1
-asm	shl	si,1
-asm	shl	si,1
-asm	shl	si,1
-asm	shl	si,1		// index into char 8 segment
-
-asm	mov	ds,[WORD PTR grsegs+STARTTILE8*2]
-asm	mov	es,[WORD PTR dest+2]
-
-asm	mov	cx,4		// draw four planes
-asm	mov	bx,[width]
-asm	dec	bx
-
-planeloop:
-
-asm	mov	di,[WORD PTR dest]
-
-asm	movsb
-asm	add	di,bx
-asm	movsb
-asm	add	di,bx
-asm	movsb
-asm	add	di,bx
-asm	movsb
-asm	add	di,bx
-asm	movsb
-asm	add	di,bx
-asm	movsb
-asm	add	di,bx
-asm	movsb
-asm	add	di,bx
-asm	movsb
-
-asm	mov	ax,[planesize]
-asm	add	[WORD PTR dest],ax
-
-asm	loop	planeloop
-
-asm	mov	ax,ss
-asm	mov	ds,ax
+	// For each plane, draw 8*8 character (starttile8+char8) with plane pitch width and plane
+	// size planesize
 
 }
 #endif
@@ -226,38 +187,7 @@ asm	mov	ds,ax
 #if GRMODE == CGAGR
 void MemDrawChar (int char8,byte far *dest,unsigned width,unsigned planesize)
 {
-asm	mov	si,[char8]
-asm	shl	si,1
-asm	shl	si,1
-asm	shl	si,1
-asm	shl	si,1		// index into char 8 segment
-
-asm	mov	ds,[WORD PTR grsegs+STARTTILE8*2]
-asm	mov	es,[WORD PTR dest+2]
-
-asm	mov	bx,[width]
-asm	sub	bx,2
-
-asm	mov	di,[WORD PTR dest]
-
-asm	movsw
-asm	add	di,bx
-asm	movsw
-asm	add	di,bx
-asm	movsw
-asm	add	di,bx
-asm	movsw
-asm	add	di,bx
-asm	movsw
-asm	add	di,bx
-asm	movsw
-asm	add	di,bx
-asm	movsw
-asm	add	di,bx
-asm	movsw
-
-asm	mov	ax,ss
-asm	mov	ds,ax
+	// As above, no planes
 
 	planesize++;		// shut the compiler up
 }
@@ -274,11 +204,11 @@ asm	mov	ds,ax
 #if GRMODE == EGAGR
 void ShiftScore (void)
 {
-	spritetabletype far *spr;
-	spritetype _seg *dest;
+	spritetabletype *spr;
+	spritetype *dest;
 
 	spr = &spritetable[SCOREBOXSPR-STARTSPRITES];
-	dest = (spritetype _seg *)grsegs[SCOREBOXSPR];
+	dest = (spritetype *)grsegs[SCOREBOXSPR];
 
 	CAL_ShiftSprite (FP_SEG(dest),dest->sourceoffset[0],
 		dest->sourceoffset[1],spr->width,spr->height,2);

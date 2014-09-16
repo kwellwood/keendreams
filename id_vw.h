@@ -19,15 +19,15 @@
 // ID_VW.H
 
 #ifndef __TYPES__
-#include "ID_TYPES.H"
+#include "id_types.h"
 #endif
 
 #ifndef __ID_MM__
-#include "ID_MM.H"
+#include "id_mm.h"
 #endif
 
 #ifndef __ID_GLOB__
-#include "ID_GLOB.H"
+#include "id_glob.h"
 #endif
 
 #define __ID_VW__
@@ -194,9 +194,9 @@ extern	unsigned	ylookup[VIRTUALHEIGHT];
 
 extern	boolean		screenfaded;
 
-extern	pictabletype	_seg *pictable;
-extern	pictabletype	_seg *picmtable;
-extern	spritetabletype _seg *spritetable;
+extern	pictabletype	*pictable;
+extern	pictabletype	*picmtable;
+extern	spritetabletype *spritetable;
 
 extern	int			px,py;
 extern	byte		pdrawmode,fontcolor;
@@ -205,7 +205,7 @@ extern	byte		pdrawmode,fontcolor;
 // asm globals
 //
 
-extern	unsigned	**shifttabletable;
+extern	word 		**shifttabletable;
 
 
 //===========================================================================
@@ -220,9 +220,10 @@ cardtype	VW_VideoID (void);
 // EGA hardware routines
 //
 
-#define EGAWRITEMODE(x) asm{cli;mov dx,GC_INDEX;mov ax,GC_MODE+256*x;out dx,ax;sti;}
-#define EGABITMASK(x) asm{mov dx,GC_INDEX;mov ax,GC_BITMASK+256*x;out dx,ax;sti;}
-#define EGAMAPMASK(x) asm{cli;mov dx,SC_INDEX;mov ax,SC_MAPMASK+x*256;out dx,ax;sti;}
+// XXX: See Abrash's Black Book for details as to what was here
+#define EGAWRITEMODE(x) 
+#define EGABITMASK(x) 
+#define EGAMAPMASK(x) 
 
 void 	VW_SetLineWidth(int width);
 void 	VW_SetScreen (unsigned CRTC, unsigned pelpan);

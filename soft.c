@@ -20,10 +20,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-#include <alloc.h>
 #include <fcntl.h>
-#include <dos.h>
-#include <io.h>
 
 #include "kd_def.h"
 //#include "gelib.h"
@@ -85,7 +82,7 @@ unsigned long BLoad(char *SourceFile, memptr *DstPtr)
 	// Open file to load....
 	//
 
-	if ((handle = open(SourceFile, O_RDONLY|O_BINARY)) == -1)
+	if ((handle = open(SourceFile, O_RDONLY)) == -1)
 		return(0);
 
 	//
@@ -340,7 +337,7 @@ memptr LoadLIBFile(char *LibName,char *FileName,memptr *MemPtr)
 	// OPEN SOFTLIB FILE
 	//
 
-	if ((handle = open(LibName,O_RDONLY|O_BINARY, S_IREAD)) == -1)
+	if ((handle = open(LibName,O_RDONLY, S_IREAD)) == -1)
 		return(NULL);
 
 

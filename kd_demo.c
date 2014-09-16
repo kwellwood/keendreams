@@ -18,8 +18,7 @@
 
 // KD_DEMO.C
 
-#include <dir.h>
-#include "KD_DEF.H"
+#include "kd_def.h"
 
 #pragma	hdrstop
 
@@ -437,7 +436,7 @@ DemoLoop (void)
 	char *FileName2;
 	struct Shape FileShape2;
 #endif
-	struct ffblk ffblk;
+	//struct ffblk ffblk;
 	WindowRec	mywin;
 	int bufsave	= bufferofs;
 	int dissave	= displayofs;
@@ -462,8 +461,8 @@ DemoLoop (void)
 	US_SetLoadSaveHooks(LoadGame,SaveGame,ResetGame);
 	restartgame = gd_Continue;
 
-	if (findfirst("KDREAMS.CMP", &ffblk, 0) == -1)
-		Quit("Couldn't find KDREAMS.CMP");
+	//if (findfirst("KDREAMS.CMP", &ffblk, 0) == -1)
+	//	Quit("Couldn't find KDREAMS.CMP");
 
 	while (true)
 	{

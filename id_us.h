@@ -34,6 +34,10 @@
 #define	__DEBUG_UserMgr__
 #endif
 
+// Setup and maintained in kd_main.c
+extern int _argc;
+extern char **_argv;
+
 #define	HELPTEXTLINKED
 
 #define	MaxString	128	// Maximum input string size

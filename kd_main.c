@@ -27,10 +27,9 @@
 =============================================================================
 */
 
-#include "mem.h"
 #include "string.h"
 
-#include "KD_DEF.H"
+#include "kd_def.h"
 #pragma hdrstop
 
 /*
@@ -53,6 +52,9 @@ char		str[80],str2[20];
 boolean		singlestep,jumpcheat,godmode,tedlevel;
 unsigned	tedlevelnum;
 
+int		_argc;
+char		**_argv;
+
 /*
 =============================================================================
 
@@ -67,7 +69,7 @@ int		DebugKeys (void);
 void	ShutdownId (void);
 void	Quit (char *error);
 void	InitGame (void);
-void	main (void);
+void	main (int argc, char **argv);
 
 //===========================================================================
 
@@ -489,9 +491,11 @@ void InitGame (void)
 ==========================
 */
 
-void main (void)
+void main (int argc, char **argv)
 {
 	short i;
+	_argc = argc;
+	_argv = argv;
 
 	if (stricmp(_argv[1], "/VER") == 0)
 	{

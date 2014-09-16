@@ -18,26 +18,31 @@
 
 // ID_GLOB.H
 
+// Temporary hack to remove DOSisms
+#define far
+#define huge
+#define _seg
+#define FP_SEG(a) a
+#define FP_OFF(a) a
+#define MK_FP(a,b) b
+#define stricmp strcasecmp
+#define movedata(a,b,c,d,e) memmove(b,d,e)
 
-#include <ALLOC.H>
 #include <ctype.h>
-#include <DOS.H>
-#include <ERRNO.H>
-#include <FCNTL.H>
-#include <IO.H>
-#include <MEM.H>
-#include <process.h>
-#include <STDIO.H>
-#include <STDLIB.H>
-#include <STRING.H>
-#include <SYS\STAT.H>
+#include <errno.h>
+#include <fcntl.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <stdint.h>
 
 #define __ID_GLOB__
 
 #define	EXTENSION	"KDR"
 
-#include "GRAPHKDR.H"
-#include "AUDIOKDR.H"
+#include "graphkdr.h"
+#include "audiokdr.h"
 
 #define	TEXTGR	0
 #define	CGAGR	1
@@ -65,9 +70,9 @@
 #define	__TYPES__
 
 typedef	enum	{false,true}	boolean;
-typedef	unsigned	char		byte;
-typedef	unsigned	int			word;
-typedef	unsigned	long		longword;
+typedef	uint8_t		byte;
+typedef	uint16_t word;
+typedef	uint32_t		longword;
 typedef	byte *					Ptr;
 
 typedef	struct
@@ -83,13 +88,13 @@ typedef	struct
 
 #endif
 
-#include "ID_MM.H"
-#include "ID_CA.H"
-#include "ID_VW.H"
-#include "ID_RF.H"
-#include "ID_IN.H"
-#include "ID_SD.H"
-#include "ID_US.H"
+#include "id_mm.h"
+#include "id_ca.h"
+#include "id_vw.h"
+#include "id_rf.h"
+#include "id_in.h"
+#include "id_sd.h"
+#include "id_us.h"
 
 
 
