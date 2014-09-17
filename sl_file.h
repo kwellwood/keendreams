@@ -44,6 +44,7 @@
 //
 //==========================================================================
 
+#include <stdint.h>
 
 
 
@@ -65,10 +66,10 @@ typedef enum LibFileTypes
 //						   * This header will NEVER change! *
 //--------------------------------------------------------------------------
 
-typedef struct SoftLibHdr
+typedef struct  __attribute__((__packed__)) SoftLibHdr
 {
-	unsigned Version;									// Library Version Num
-	unsigned FileCount;
+	uint16_t Version;									// Library Version Num
+	uint16_t FileCount;
 } SoftlibHdr;
 
 
@@ -82,13 +83,13 @@ typedef struct SoftLibHdr
 
 #define SL_FILENAMESIZE		16
 
-typedef struct FileEntryHdr
+typedef struct __attribute__((__packed__)) FileEntryHdr
 {
 	char FileName[SL_FILENAMESIZE];		  	// NOTE : May not be null terminated!
-	unsigned long Offset;
-	unsigned long ChunkLen;
-	unsigned long OrginalLength;
-	short Compression;							// ct_TYPES
+	uint32_t Offset;
+	uint32_t ChunkLen;
+	uint32_t OrginalLength;
+	int16_t Compression;							// ct_TYPES
 } FileEntryHdr;
 
 
@@ -97,11 +98,11 @@ typedef struct FileEntryHdr
 //							   SOFTLIB Entry Chunk Header
 //--------------------------------------------------------------------------
 
-typedef struct ChunkHeader
+typedef struct __attribute__((__packed__)) ChunkHeader
 {
-	unsigned long HeaderID;
-	unsigned long OrginalLength;
-	short Compression;								// ct_TYPES
+	uint32_t HeaderID;
+	uint32_t OrginalLength;
+	int16_t Compression;								// ct_TYPES
 } ChunkHeader;
 
 

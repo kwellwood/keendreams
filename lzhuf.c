@@ -169,19 +169,19 @@ void (*LZH_DecompressDisplayVector)() = NULL;
 //===========================================================================
 	/* pointing children nodes (son[], son[] + 1)*/
 
-int son[T];
-unsigned code, len;
+int16_t son[T];
+uint16_t code, len;
 
 	//
 	// pointing parent nodes.
 	// area [T..(T + N_CHAR - 1)] are pointers for leaves
 	//
 
-int prnt[T + N_CHAR];
+int16_t prnt[T + N_CHAR];
 
-unsigned freq[T + 1];	/* cumulative freq table */
+uint16_t freq[T + 1];	/* cumulative freq table */
 
-unsigned long textsize = 0, codesize = 0, printcount = 0,datasize;
+uint32_t textsize = 0, codesize = 0, printcount = 0,datasize;
 unsigned char  text_buf[N + F - 1];
 
 
@@ -192,8 +192,8 @@ unsigned char  text_buf[N + F - 1];
 
 #if INCLUDE_LZH_COMP
 
-static int match_position,match_length, lson[N + 1], rson[N + 257], dad[N + 1];
-unsigned putbuf = 0;
+static int16_t match_position,match_length, lson[N + 1], rson[N + 257], dad[N + 1];
+uint16_t putbuf = 0;
 unsigned char putlen = 0;
 
 	//
@@ -310,7 +310,7 @@ unsigned char  d_len[256] = {
 	0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08,
 };
 
-unsigned getbuf = 0;
+uint16_t getbuf = 0;
 unsigned char getlen = 0;
 
 #endif
@@ -334,7 +334,7 @@ unsigned char getlen = 0;
 //---------------------------------------------------------------------------
 static void StartHuff()
 {
-	int i, j;
+	int16_t i, j;
 
 	for (i = 0; i < N_CHAR; i++) {
 		freq[i] = 1;
@@ -362,8 +362,8 @@ static void StartHuff()
 //---------------------------------------------------------------------------
 static void reconst()
 {
-	int i, j, k;
-	unsigned f, l;
+	int16_t i, j, k;
+	uint16_t f, l;
 
 	/* halven cumulative freq for leaf nodes */
 
@@ -423,7 +423,7 @@ static void reconst()
 //---------------------------------------------------------------------------
 static void update(int c)
 {
-	int i, j, k, l;
+	int16_t i, j, k, l;
 
 	if (freq[R] == MAX_FREQ)
 	{
@@ -758,7 +758,7 @@ static void EncodeEnd(long outfile_ptr,unsigned PtrTypes)
 //---------------------------------------------------------------------------
 static int GetByte(long infile_ptr, unsigned long *CompressLength, unsigned PtrTypes)
 {
-	unsigned i;
+	uint16_t i;
 
 	while (getlen <= 8)
 	{
@@ -777,7 +777,7 @@ static int GetByte(long infile_ptr, unsigned long *CompressLength, unsigned PtrT
 	i = getbuf;
 	getbuf <<= 8;
 	getlen -= 8;
-	return i>>8;
+	return (i>>8) & 0xff;
 }
 
 
@@ -790,7 +790,7 @@ static int GetByte(long infile_ptr, unsigned long *CompressLength, unsigned PtrT
 //---------------------------------------------------------------------------
 static int GetBit(long infile_ptr, unsigned long *CompressLength, unsigned PtrTypes)	/* get one bit */
 {
-	int i;
+	uint16_t i;
 
 	while (getlen <= 8)
 	{
@@ -806,10 +806,11 @@ static int GetBit(long infile_ptr, unsigned long *CompressLength, unsigned PtrTy
 		getlen += 8;
 	}
 
+	
 	i = getbuf;
 	getbuf <<= 1;
 	getlen--;
-	return (i < 0);
+	return ((i & 32768) == 32768);
 }
 
 
@@ -851,14 +852,14 @@ static int DecodeChar(long infile_ptr, unsigned long *CompressLength, unsigned P
 //---------------------------------------------------------------------------
 static int DecodePosition(long infile_ptr,unsigned long *CompressLength, unsigned PtrTypes)
 {
-	unsigned i, j, c;
+	uint16_t i, j, c;
 
 	//
 	// decode upper 6 bits from given table
 	//
 
 	i = GetByte(infile_ptr, CompressLength, PtrTypes);
-	c = (unsigned)d_code[i] << 6;
+	c = (uint16_t)d_code[i] << 6;
 	j = d_len[i];
 
 	//
@@ -871,7 +872,7 @@ static int DecodePosition(long infile_ptr,unsigned long *CompressLength, unsigne
 		i = (i << 1) + GetBit(infile_ptr, CompressLength, PtrTypes);
 	}
 
-	return c | i & 0x3f;
+	return c | (i & 0x3f);
 }
 
 #endif
@@ -898,8 +899,8 @@ static int DecodePosition(long infile_ptr,unsigned long *CompressLength, unsigne
 //---------------------------------------------------------------------------
 long lzhDecompress(void  *infile, void  *outfile, unsigned long OrginalLength, unsigned long CompressLength, unsigned PtrTypes)
 {
-	int  i, j, k, r, c;
-	long count;
+	int16_t  i, j, k, r, c;
+	int32_t count;
 
 	datasize = textsize = OrginalLength;
 	getbuf = 0;
@@ -916,11 +917,11 @@ long lzhDecompress(void  *infile, void  *outfile, unsigned long OrginalLength, u
 
 	for (count = 0; count < textsize; )
 	{
-		c = DecodeChar((long)&infile,&CompressLength,PtrTypes);
+		c = DecodeChar(&infile,&CompressLength,PtrTypes);
 
 		if (c < 256)
 		{
-			WritePtr((long)&outfile,c,PtrTypes);
+			WritePtr(&outfile,c,PtrTypes);
 			datasize--;								// Dec # of bytes to write
 
 			text_buf[r++] = c;
@@ -935,8 +936,7 @@ long lzhDecompress(void  *infile, void  *outfile, unsigned long OrginalLength, u
 			for (k = 0; k < j; k++)
 			{
 				c = text_buf[(i + k) & (N - 1)];
-
-				WritePtr((long)&outfile,c,PtrTypes);
+				WritePtr(&outfile,c,PtrTypes);
 				datasize--;							// dec count of bytes to write
 
 				text_buf[r++] = c;

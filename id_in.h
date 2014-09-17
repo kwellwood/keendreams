@@ -191,5 +191,6 @@ extern	byte		*IN_GetScanName(ScanCode);
 extern	char		IN_WaitForASCII(void);
 extern	ScanCode	IN_WaitForKey(void);
 extern	word		IN_GetJoyButtonsDB(word joy);
+extern	void		IN_PumpEvents(void);
 
 #endif

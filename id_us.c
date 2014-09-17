@@ -683,7 +683,7 @@ US_CPrint(char *s)
 		se = s;
 		while ((c = *se) && (c != '\n'))
 			se++;
-		*se = '\0';
+		//*se = '\0';
 
 		US_CPrintLine(s);
 
@@ -963,8 +963,7 @@ US_LineInput(int x,int y,char *buf,char *def,boolean escok,
 		if (cursorvis)
 			USL_XORICursor(x,y,s,cursor);
 
-		// XXX: LastScan/LastASCII are updated by an interrupt, needs
-		// replacing.
+		IN_PumpEvents();
 		sc = LastScan;
 		LastScan = sc_None;
 		c = LastASCII;
@@ -1978,6 +1977,7 @@ USL_CtlCKbdButtonCustom(UserCall call,word i,word n)
 	state = true;
 	do
 	{
+		IN_PumpEvents();
 		if (TimeCount - time > 35)	// Half-second delays
 		{
 			state ^= true;
@@ -2062,7 +2062,8 @@ USL_CtlCJoyButtonCustom(UserCall call,word i,word n)
 	{
 		USL_ShowHelp("Move Joystick to the Upper-Left");
 		VW_UpdateScreen();
-		while ((LastScan != sc_Escape) && !IN_GetJoyButtonsDB(joy));
+		while ((LastScan != sc_Escape) && !IN_GetJoyButtonsDB(joy))
+			IN_PumpEvents();
 
 		if (LastScan != sc_Escape)
 		{
@@ -2071,7 +2072,8 @@ USL_CtlCJoyButtonCustom(UserCall call,word i,word n)
 
 			USL_ShowHelp("Move Joystick to the Lower-Right");
 			VW_UpdateScreen();
-			while ((LastScan != sc_Escape) && !IN_GetJoyButtonsDB(joy));
+			while ((LastScan != sc_Escape) && !IN_GetJoyButtonsDB(joy))
+				IN_PumpEvents();
 
 			if (LastScan != sc_Escape)
 			{
@@ -2095,7 +2097,7 @@ USL_CtlCJoyButtonCustom(UserCall call,word i,word n)
 
 	if (LastScan != sc_Escape)
 		while (IN_GetJoyButtonsDB(joy))
-			;
+			IN_PumpEvents();
 
 	if (LastScan)
 		IN_ClearKeysDown();
@@ -2343,7 +2345,7 @@ USL_DoHelp(memptr text,long len)
 
 		if (waitkey)
 			while (IN_KeyDown(waitkey))
-				;
+				IN_PumpEvents();
 		waitkey = sc_None;
 
 		IN_ReadCursor(&info);
@@ -3279,6 +3281,7 @@ US_ControlPanel(void)
 	&&	!(done || loadedgame || ResumeGame)
 	)
 	{
+		IN_PumpEvents();
 		VW_UpdateScreen();
 
 		buttondown = US_UpdateCursor();
@@ -3378,7 +3381,7 @@ US_ControlPanel(void)
 					VW_UpdateScreen();
 
 					while (TimeCount - lasttime < TickBase / 4)
-						;
+						IN_PumpEvents();
 					lasttime = TimeCount;
 
 					ip->sel &= ~ui_Selected;
@@ -3386,7 +3389,7 @@ US_ControlPanel(void)
 					VW_UpdateScreen();
 
 					while (TimeCount - lasttime < TickBase / 4)
-						;
+						IN_PumpEvents();
 				}
 
 				USL_DoHit(hiti,hitn);

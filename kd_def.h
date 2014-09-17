@@ -135,22 +135,22 @@ typedef struct	objstruct
 
 
 struct BitMapHeader {
-	unsigned int	w,h,x,y;
+	uint16_t w,h,x,y;
 	unsigned char	d,trans,comp,pad;
 };
 
 struct BitMap {
-	unsigned int Width;
-	unsigned int Height;
-	unsigned int Depth;
-	unsigned int BytesPerRow;
+	uint16_t Width;
+	uint16_t Height;
+	uint16_t Depth;
+	uint16_t BytesPerRow;
 	char far *Planes[8];
 };
 
 struct Shape {
 	memptr Data;
-	long size;
-	unsigned int BPR;
+	uint32_t size;
+	uint16_t BPR;
 	struct BitMapHeader bmHdr;
 };
 
@@ -360,6 +360,6 @@ memptr InitBufferedIO(int handle, BufferedIO *bio);
 void FreeBufferedIO(BufferedIO *bio);
 byte bio_readch(BufferedIO *bio);
 void bio_fillbuffer(BufferedIO *bio);
-void SwapLong(long far *Var);
-void SwapWord(unsigned int far *Var);
+void SwapLong(uint32_t *Var);
+void SwapWord(uint16_t *Var);
 void MoveGfxDst(short x, short y);

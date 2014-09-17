@@ -489,7 +489,7 @@ void CAL_SetupGrFile (void)
 	CAL_GetGrChunkLength(STRUCTPICM);		// position file pointer
 	MM_GetPtr(&compseg,chunkcomplen);
 	CA_FarRead (grhandle,compseg,chunkcomplen);
-	CAL_HuffExpand (compseg, (byte  *)picmtable,NUMPICS*sizeof(pictabletype),grhuffman);
+	CAL_HuffExpand (compseg, (byte  *)picmtable,NUMPICM*sizeof(pictabletype),grhuffman);
 	MM_FreePtr(&compseg);
 #endif
 
