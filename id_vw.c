@@ -19,6 +19,7 @@
 // ID_VW.C
 
 #include "id_heads.h"
+#include <SDL2/SDL.h>
 
 /*
 =============================================================================
@@ -52,6 +53,8 @@
 
 cardtype	videocard;		// set by VW_Startup
 grtype		grmode;			// CGAgr, EGAgr, VGAgr
+SDL_Window	*window;
+SDL_GLContext	glcontext;
 
 unsigned	bufferofs;		// hidden area to draw to before displaying
 unsigned	displayofs;		// origin of the visable screen
@@ -110,6 +113,7 @@ static	char *ParmStrings[] = {"HIDDENCARD",""};
 void	VW_Startup (void)
 {
 	int i;
+	SDL_Init(SDL_INIT_VIDEO);
 
 
 	videocard = 0;
@@ -141,6 +145,9 @@ Quit ("Improper video card!  If you really have a CGA card that I am not \n"
 #endif
 
 	cursorvisible = 0;
+	
+	window = SDL_CreateWindow("Keen Dreams", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 320, 200, SDL_WINDOW_OPENGL);
+	glcontext = SDL_GL_CreateContext(window);
 }
 
 //===========================================================================

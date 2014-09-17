@@ -36,6 +36,7 @@
 //
 
 #include "id_heads.h"
+#include <SDL2/SDL.h>
 #pragma	hdrstop
 
 #define	KeyInt	9	// The keyboard ISR number
@@ -153,12 +154,182 @@ static	char			*ParmStrings[] = {"nojoys","nomouse",nil};
 //
 ///////////////////////////////////////////////////////////////////////////
 static void
-INL_KeyService(void)
+INL_KeyService(ScanCode k)
 {
 static	boolean	special;
-		byte	k,c,
-				temp;
+		byte	c, temp;
+	
 
+	if (k == 0xe0)		// Special key prefix
+		special = true;
+	else if (k == 0xe1)	// Handle Pause key
+		Paused = true;
+	else
+	{
+		if (k & 0x80)	// Break code
+		{
+			k &= 0x7f;
+
+// DEBUG - handle special keys: ctl-alt-delete, print scrn
+
+			Keyboard[k] = false;
+		}
+		else			// Make code
+		{
+			LastCode = CurCode;
+			CurCode = LastScan = k;
+			Keyboard[k] = true;
+
+			if (special)
+				c = SpecialNames[k];
+			else
+			{
+				if (k == sc_CapsLock)
+				{
+					CapsLock ^= true;
+					// DEBUG - make caps lock light work
+				}
+
+				if (Keyboard[sc_LShift] || Keyboard[sc_RShift])	// If shifted
+				{
+					c = ShiftNames[k];
+					if ((c >= 'A') && (c <= 'Z') && CapsLock)
+						c += 'a' - 'A';
+				}
+				else
+				{
+					c = ASCIINames[k];
+					if ((c >= 'a') && (c <= 'z') && CapsLock)
+						c -= 'a' - 'A';
+				}
+			}
+			if (c)
+				LastASCII = c;
+		}
+
+		special = false;
+	}
+
+	if (INL_KeyHook && !special)
+		INL_KeyHook();
+
+}
+#define INL_MapKey(sdl,in_sc) case sdl: return in_sc
+
+ScanCode INL_SDLKToScanCode(int sdlKey)
+{
+	switch (sdlKey)
+	{
+		INL_MapKey(SDLK_RETURN, sc_Return);
+		INL_MapKey(SDLK_ESCAPE, sc_Escape);
+		INL_MapKey(SDLK_SPACE, sc_Space);
+		INL_MapKey(SDLK_BACKSPACE, sc_BackSpace);
+		INL_MapKey(SDLK_TAB, sc_Tab);
+		INL_MapKey(SDLK_LALT, sc_Alt);
+		INL_MapKey(SDLK_RALT, sc_Alt);
+		INL_MapKey(SDLK_LCTRL, sc_Control);
+		INL_MapKey(SDLK_RCTRL, sc_Control);
+		INL_MapKey(SDLK_CAPSLOCK, sc_CapsLock);
+		INL_MapKey(SDLK_LSHIFT, sc_LShift);
+		INL_MapKey(SDLK_RSHIFT, sc_RShift);
+		INL_MapKey(SDLK_UP, sc_UpArrow);
+		INL_MapKey(SDLK_LEFT, sc_LeftArrow);
+		INL_MapKey(SDLK_RIGHT, sc_RightArrow);
+		INL_MapKey(SDLK_DOWN, sc_DownArrow);
+		INL_MapKey(SDLK_INSERT, sc_Insert);
+		INL_MapKey(SDLK_DELETE, sc_Delete);
+		INL_MapKey(SDLK_HOME, sc_Home);
+		INL_MapKey(SDLK_END, sc_End);
+		INL_MapKey(SDLK_PAGEUP, sc_PgUp);
+		INL_MapKey(SDLK_PAGEDOWN, sc_PgDn);
+		
+		INL_MapKey(SDLK_F1, sc_F1);
+		INL_MapKey(SDLK_F2, sc_F2);
+		INL_MapKey(SDLK_F3, sc_F3);
+		INL_MapKey(SDLK_F4, sc_F4);
+		INL_MapKey(SDLK_F5, sc_F5);
+		INL_MapKey(SDLK_F6, sc_F6);
+		INL_MapKey(SDLK_F7, sc_F7);
+		INL_MapKey(SDLK_F8, sc_F8);
+		INL_MapKey(SDLK_F9, sc_F9);
+		INL_MapKey(SDLK_F10, sc_F10);
+
+		INL_MapKey(SDLK_F11, sc_F11);
+		INL_MapKey(SDLK_F12, sc_F12);
+
+		INL_MapKey(SDLK_a, sc_A);
+		INL_MapKey(SDLK_b, sc_B);
+		INL_MapKey(SDLK_c, sc_C);
+		INL_MapKey(SDLK_d, sc_D);
+		INL_MapKey(SDLK_e, sc_E);
+		INL_MapKey(SDLK_f, sc_F);
+		INL_MapKey(SDLK_g, sc_G);
+		INL_MapKey(SDLK_h, sc_H);
+		INL_MapKey(SDLK_i, sc_I);
+		INL_MapKey(SDLK_j, sc_J);
+		INL_MapKey(SDLK_k, sc_K);
+		INL_MapKey(SDLK_l, sc_L);
+		INL_MapKey(SDLK_m, sc_M);
+		INL_MapKey(SDLK_n, sc_N);
+		INL_MapKey(SDLK_o, sc_O);
+		INL_MapKey(SDLK_p, sc_P);
+		INL_MapKey(SDLK_q, sc_Q);
+		INL_MapKey(SDLK_r, sc_R);
+		INL_MapKey(SDLK_s, sc_S);
+		INL_MapKey(SDLK_t, sc_T);
+		INL_MapKey(SDLK_u, sc_U);
+		INL_MapKey(SDLK_v, sc_V);
+		INL_MapKey(SDLK_w, sc_W);
+		INL_MapKey(SDLK_x, sc_X);
+		INL_MapKey(SDLK_y, sc_Y);
+		INL_MapKey(SDLK_z, sc_Z);
+		
+		INL_MapKey(SDLK_PAUSE, 0xe1);
+	default: return sc_Bad;
+	}
+}
+
+#undef INL_MapKey
+
+///////////////////////////////////////////////////////////////////////////
+//
+//	INL_HandleSDLEvent() - Handles an event from the system SDL2
+//
+///////////////////////////////////////////////////////////////////////////
+static void INL_HandleSDLEvent(SDL_Event *event)
+{
+
+	ScanCode sc;
+	static boolean special;
+	char c;
+
+	switch (event->type)
+	{
+	case SDL_QUIT:
+		Quit(0);
+		break;
+	case SDL_KEYDOWN:
+		sc = INL_SDLKToScanCode(event->key.keysym.sym);
+		INL_KeyService(sc);
+		break;
+	case SDL_KEYUP:
+		sc = INL_SDLKToScanCode(event->key.keysym.sym);
+		INL_KeyService(sc);
+		break;
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////
+//
+//	IN_PumpEvents() - Handles system events, making sure input is up
+//		-to-date
+//
+///////////////////////////////////////////////////////////////////////////
+void IN_PumpEvents(void)
+{
+	SDL_Event evt;
+	while (SDL_PollEvent(&evt))
+		INL_HandleSDLEvent(&evt);
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -737,15 +908,18 @@ IN_GetScanName(ScanCode scan)
 //		returns the scan code
 //
 ///////////////////////////////////////////////////////////////////////////
-ScanCode
-IN_WaitForKey(void)
+ScanCode IN_WaitForKey(void)
 {
+	SDL_Event event;
 	ScanCode	result;
-
-	while (!(result = LastScan))
-		;
+	// TODO: Refresh the display to stop steam overlay hanging.
+	while (SDL_WaitEvent(&event))
+	{
+		INL_HandleSDLEvent(&event);
+		if (!(result = LastScan)) break;
+	}
 	LastScan = 0;
-	return(result);
+	return (result);
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -757,10 +931,14 @@ IN_WaitForKey(void)
 char
 IN_WaitForASCII(void)
 {
+	SDL_Event event;
 	char		result;
-
-	while (!(result = LastASCII))
-		;
+	// TODO: Refresh the display to stop steam overlay hanging.
+	while (SDL_WaitEvent(&event))
+	{
+		INL_HandleSDLEvent(&event);
+		if (!(result = LastASCII)) break;
+	}
 	LastASCII = '\0';
 	return(result);
 }
@@ -775,8 +953,15 @@ IN_AckBack(void)
 {
 	word	i;
 
+	return;
 	while (!LastScan)
 	{
+		SDL_Event evt;
+		if (SDL_PollEvent(&evt))
+		{
+			INL_HandleSDLEvent(&evt);
+		}
+		
 		if (MousePresent)
 		{
 			if (INL_GetMouseButtons())
@@ -840,6 +1025,9 @@ IN_IsUserInput(void)
 {
 	boolean	result;
 	word	i;
+	SDL_Event evt;
+	if (SDL_PollEvent(&evt))
+		INL_HandleSDLEvent(&evt);
 
 	result = LastScan;
 

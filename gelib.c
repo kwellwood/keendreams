@@ -17,6 +17,7 @@
  */
 
 #include "kd_def.h"
+#include <SDL2/SDL.h>
 
 #define BIO_BUFFER_LEN	(512)
 
@@ -39,16 +40,18 @@ void FreeShape(struct Shape *shape)
 int UnpackEGAShapeToScreen(struct Shape *SHP,int startx,int starty)
 {
 	int currenty;
-	signed char n, Rep, far *Src, far *Dst[8], loop, Plane;
+	signed char n, Rep, *Src, *Dst[8], loop, Plane;
 	unsigned int BPR, Height;
 	int NotWordAligned;
 
 	NotWordAligned = SHP->BPR & 1;
 	startx>>=3;
-	Src = (SHP->Data,0);
+	Src = SHP->Data;
 	currenty = starty;
 	Plane = 0;
 	Height = SHP->bmHdr.h;
+	// XXX: When we've got rendering up, return to this.
+	return 0;
 	while (Height--)
 	{
 		Dst[0] = displayofs; //XXX: EGA stuff, needs hackery.//(MK_FP(0xA000,displayofs));
@@ -150,18 +153,13 @@ void FreeBufferedIO(BufferedIO *bio)
 //--------------------------------------------------------------------------
 byte bio_readch(BufferedIO *bio)
 {
-	byte far *buffer;
-
 	if (bio->offset == BIO_BUFFER_LEN)
 	{
 		bio->offset = 0;
 		bio_fillbuffer(bio);
 	}
 
-	// TODO: segment hackery
-	buffer = (bio->buffer,bio->offset++);
-
-	return(*buffer);
+	return (((byte*)bio->buffer)[bio->offset++]);
 }
 
 //--------------------------------------------------------------------------
@@ -193,8 +191,7 @@ void bio_fillbuffer(BufferedIO *bio)
 			bytes_requested = bio_length;
 
 		read(bio->handle,near_buffer,bytes_requested);
-		//XXX: Segment hackery
-		memcpy((bio->buffer,bytes_read),near_buffer,bytes_requested);
+		memcpy(&((byte*)bio->buffer)[bytes_read],near_buffer,bytes_requested);
 
 		bio_length -= bytes_requested;
 		bytes_read += bytes_requested;
@@ -205,32 +202,18 @@ void bio_fillbuffer(BufferedIO *bio)
 //
 // SwapLong()
 //
-void SwapLong(long *Var)
+void SwapLong(uint32_t *Var)
 {
-	//XXX: Replace with SDL endian fns
-	/*
-	asm		les	bx,Var
-	asm		mov	ax,[es:bx]
-	asm		xchg	ah,al
-	asm		xchg	ax,[es:bx+2]
-	asm		xchg	ah,al
-	asm 		mov	[es:bx],ax
-	*/
+	*Var = SDL_Swap32(*Var);
 }
 
 ///////////////////////////////////////////////////////////////////////////
 //
 // SwapWord()
 //
-void SwapWord(unsigned far *Var)
+void SwapWord(uint16_t *Var)
 {
-	//XXX: Replace with SDL endian fns
-	/*
-	asm		les	bx,Var
-	asm		mov	ax,[es:bx]
-	asm		xchg	ah,al
-	asm		mov	[es:bx],ax
-	*/
+	*Var = SDL_Swap16(*Var);
 }
 
 ////////////////////////////////////////////////////////////////////////////

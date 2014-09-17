@@ -16,7 +16,7 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include "SL_FILE.h"
+#include "sl_file.h"
 #include "id_mm.h"
 
 ///////////////////////////////////////////////////////////////////////////
@@ -25,22 +25,22 @@
 //
 
 struct BitMapHeader {
-	unsigned int	w,h,x,y;
-	unsigned char	d,trans,comp,pad;
+	uint16_t w,h,x,y;
+	uint8_t	d,trans,comp,pad;
 };
 
 struct BitMap {
-	unsigned int Width;
-	unsigned int Height;
-	unsigned int Depth;
-	unsigned int BytesPerRow;
-	char far *Planes[8];
+	uint16_t Width;
+	uint16_t Height;
+	uint16_t Depth;
+	uint16_t BytesPerRow;
+	char *Planes[8];
 };
 
 struct Shape {
 	memptr Data;
-	long size;
-	unsigned int BPR;
+	uint32_t size;
+	uint16_t BPR;
 	struct BitMapHeader bmHdr;
 };
 

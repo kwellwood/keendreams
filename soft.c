@@ -199,18 +199,18 @@ unsigned long BLoad(char *SourceFile, memptr *DstPtr)
 //
 int LoadLIBShape(char *SLIB_Filename, char *Filename,struct Shape *SHP)
 {
-	#define CHUNK(Name)	(*ptr == *Name) &&			\
+	#define CHUNK(Name)	((*ptr == *Name) &&			\
 								(*(ptr+1) == *(Name+1)) &&	\
 								(*(ptr+2) == *(Name+2)) &&	\
-								(*(ptr+3) == *(Name+3))
+								(*(ptr+3) == *(Name+3)))
 
 
 	int RT_CODE;
 	FILE *fp;
-	char CHUNK[5];
-	char far *ptr;
+	char CHUNK[5] = {0, 0, 0, 0, 0};
+	byte *ptr;
 	memptr IFFfile = NULL;
-	unsigned long FileLen, size, ChunkLen;
+	uint32_t FileLen, size, ChunkLen;
 	int loop;
 
 
@@ -224,13 +224,13 @@ int LoadLIBShape(char *SLIB_Filename, char *Filename,struct Shape *SHP)
 
 	// Evaluate the file
 	//
-	ptr = MK_FP(IFFfile,0);
+	ptr = (byte*)IFFfile;
 	if (!CHUNK("FORM"))
 		goto EXIT_FUNC;
 	ptr += 4;
 
-	FileLen = *(long far *)ptr;
-	SwapLong((long far *)&FileLen);
+	FileLen = *(uint32_t *)ptr;
+	SwapLong(&FileLen);
 	ptr += 4;
 
 	if (!CHUNK("ILBM"))
@@ -240,9 +240,10 @@ int LoadLIBShape(char *SLIB_Filename, char *Filename,struct Shape *SHP)
 	FileLen += 4;
 	while (FileLen)
 	{
-		ChunkLen = *(long far *)(ptr+4);
-		SwapLong((long far *)&ChunkLen);
+		ChunkLen = *(uint32_t *)(ptr+4);
+		SwapLong(&ChunkLen);
 		ChunkLen = (ChunkLen+1) & 0xFFFFFFFE;
+		printf("Chunk: %c%c%c%c, size %d (fileLen = %d)\n", *ptr, *(ptr+1), *(ptr+2), *(ptr+3), ChunkLen, FileLen);
 
 		if (CHUNK("BMHD"))
 		{
@@ -265,14 +266,14 @@ int LoadLIBShape(char *SLIB_Filename, char *Filename,struct Shape *SHP)
 		if (CHUNK("BODY"))
 		{
 			ptr += 4;
-			size = *((long far *)ptr);
+			size = *((uint32_t*)ptr);
 			ptr += 4;
-			SwapLong((long far *)&size);
+			SwapLong(&size);
 			SHP->BPR = (SHP->bmHdr.w+7) >> 3;
 			MM_GetPtr(&SHP->Data,size);
 			if (!SHP->Data)
 				goto EXIT_FUNC;
-			movedata(FP_SEG(ptr),FP_OFF(ptr),FP_SEG(SHP->Data),0,size);
+			memmove(SHP->Data, ptr, size);
 			ptr += ChunkLen;
 
 			break;
@@ -321,16 +322,16 @@ EXIT_FUNC:;
 memptr LoadLIBFile(char *LibName,char *FileName,memptr *MemPtr)
 {
 	int handle;
-	unsigned long header;
+	uint32_t header;
 	struct ChunkHeader Header;
-	unsigned long ChunkLen;
+	uint32_t ChunkLen;
 	short x;
 	struct FileEntryHdr FileEntry;     			// Storage for file once found
 	struct FileEntryHdr FileEntryHeader;		// Header used durring searching
 	struct SoftLibHdr LibraryHeader;				// Library header - Version Checking
 	boolean FileFound = false;
-	unsigned long id_slib = ID_SLIB;
-	unsigned long id_chunk = ID_CHUNK;
+	uint32_t id_slib = ID_SLIB;
+	uint32_t id_chunk = ID_CHUNK;
 
 
 	//
@@ -446,7 +447,7 @@ memptr LoadLIBFile(char *LibName,char *FileName,memptr *MemPtr)
 			case ct_LZH:
 				if (!InitBufferedIO(handle,&lzwBIO))
 					Quit("No memory for buffered I/O.");
-				lzhDecompress(&lzwBIO, MK_FP(*MemPtr,0), FileEntry.OrginalLength, ChunkLen, (SRC_BFILE|DEST_MEM));
+				lzhDecompress(&lzwBIO, *MemPtr, FileEntry.OrginalLength, ChunkLen, (SRC_BFILE|DEST_MEM));
 				FreeBufferedIO(&lzwBIO);
 				break;
 			#endif

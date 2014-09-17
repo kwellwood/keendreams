@@ -22,9 +22,9 @@
 #define far
 #define huge
 #define _seg
-#define FP_SEG(a) a
-#define FP_OFF(a) a
-#define MK_FP(a,b) b
+#define FP_SEG(a) (a)
+#define FP_OFF(a) (a)
+#define MK_FP(a,b) ((a)+(b))
 #define stricmp strcasecmp
 #define movedata(a,b,c,d,e) memmove(b,d,e)
 
