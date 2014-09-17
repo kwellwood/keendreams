@@ -248,7 +248,7 @@ void ScoreThink (objtype *ob)
 		dest = (byte far *)grsegs[SCOREBOXSPR]+block->sourceoffset[0]
 			+ planesize + width*4 + 1*CHARWIDTH;
 
-		ltoa (gamestate.score,str,10);
+		//ltoa (gamestate.score,str,10);
 
 		// erase leading spaces
 		length = strlen(str);
@@ -286,8 +286,9 @@ void ScoreThink (objtype *ob)
 		if (number > 99)
 			strcpy (str,"99");
 		else
-			ltoa (number,str,10);
-
+		{
+			// XXX ltoa (number,str,10);
+		}
 		// erase leading spaces
 		length = strlen(str);
 		for (i=2;i>length;i--)

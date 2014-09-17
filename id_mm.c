@@ -30,7 +30,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include <stdlib.h>
 
-memptr buffer; // Misc buffer
+memptr bufferseg; // Misc buffer
 
 #define MM_MAXBLOCKS	2048 	//1200 in Keen5
 
@@ -118,7 +118,7 @@ void MM_Startup(void)
 	mm_free = &(mm_blocks[0]);
 	mm_purgeable = 0;
 	// Misc buffer
-	MM_GetPtr(&buffer,BUFFERSIZE);
+	MM_GetPtr(&bufferseg,BUFFERSIZE);
 }
 
 void MM_Shutdown(void)

@@ -138,6 +138,21 @@ SDMode		oldsoundmode;
 /*
 ============================
 =
+= CAL_filelength
+=
+= Gets the length of the file with handle 'fd'
+=
+============================
+*/
+off_t CAL_filelength(int fd)
+{
+	struct stat filestats;
+	fstat(fd, &filestats);
+	return filestats.st_size;
+}
+/*
+============================
+=
 = CAL_GetGrChunkLength
 =
 = Gets the length of an explicit length chunk (not tiles)
@@ -311,7 +326,7 @@ void CAL_HuffExpand(byte *src, byte *dest, int expLength, huffnode *table)
 =
 ======================
 */
-long CA_RLEWcompress (word *src, int expLength, word *dest, word rletag)
+long CA_RLEWCompress (word *src, int expLength, word *dest, word rletag)
 {
 	int compLength = 0;
 	uint16_t *srcptr = (uint16_t*)src;
@@ -514,7 +529,7 @@ void CAL_SetupMapFile (void)
 	if ((handle = open("KDREAMS.MAP",
 		 O_RDONLY)) == -1)
 		Quit ("Can't open KDREAMS.MAP!");
-	length = filelength(handle);
+	length = CAL_filelength(handle);
 	MM_GetPtr ((memptr)&tinf,length);
 	CA_FarRead(handle, tinf, length);
 	close(handle);
@@ -564,7 +579,7 @@ void CAL_SetupAudioFile (void)
 	if ((handle = open("AUDIOHED."EXTENSION,
 		 O_RDONLY)) == -1)
 		Quit ("Can't open AUDIOHED."EXTENSION"!");
-	length = filelength(handle);
+	length = CAL_filelength(handle);
 	MM_GetPtr ((memptr)&audiostarts,length);
 	CA_FarRead(handle, (byte  *)audiostarts, length);
 	close(handle);

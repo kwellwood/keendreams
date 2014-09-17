@@ -789,12 +789,10 @@ boolean SD_SetSoundMode(SDMode mode)
 	switch (mode)
 	{
 		case sdm_Off:
-			NeedsDigitized = 0;
 			any_sound = true;
 			break;
 		case sdm_PC:
 			offset = 0;
-			NeedsDigitized = 0;
 			any_sound = true;
 			break;
 		case sdm_AdLib:
@@ -803,7 +801,6 @@ boolean SD_SetSoundMode(SDMode mode)
 				break;
 			}
 			offset = NUMSOUNDS;
-			NeedsDigitized = 0;
 			any_sound = true;
 			break;
 		default:

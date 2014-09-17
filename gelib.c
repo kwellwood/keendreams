@@ -60,7 +60,7 @@ int UnpackEGAShapeToScreen(struct Shape *SHP,int startx,int starty)
 
 		for (Plane=0; Plane<SHP->bmHdr.d; Plane++)
 		{
-			outport(0x3c4,((1<<Plane)<<8)|2);
+			// XXX outport(0x3c4,((1<<Plane)<<8)|2);
 
 			BPR = ((SHP->BPR+1) >> 1) << 1;               // IGNORE WORD ALIGN
 			while (BPR)
@@ -118,7 +118,7 @@ long Verify(char *filename)
 
 	if ((handle=open(filename,0))==-1)
 		return (0);
-	size=filelength(handle);
+	size=CAL_filelength(handle);
 	close(handle);
 	return(size);
 }
