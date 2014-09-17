@@ -66,9 +66,9 @@ unsigned	ylookup[VIRTUALHEIGHT];
 
 boolean		screenfaded;
 
-pictabletype	_seg *pictable;
-pictabletype	_seg *picmtable;
-spritetabletype _seg *spritetable;
+pictabletype	*pictable;
+pictabletype	*picmtable;
+spritetabletype *spritetable;
 
 /*
 =============================================================================
@@ -78,8 +78,8 @@ spritetabletype _seg *spritetable;
 =============================================================================
 */
 
-void	VWL_MeasureString (char far *string, word *width, word *height,
-		fontstruct _seg *font);
+void	VWL_MeasureString (char *string, word *width, word *height,
+		fontstruct *font);
 void 	VWL_DrawCursor (void);
 void 	VWL_EraseCursor (void);
 void 	VWL_DBSetup (void);
@@ -180,10 +180,9 @@ void VW_SetScreenMode (int grmode)
 		  screenseg=0xb000;
 		  break;
 	  case CGAGR: 
-		  geninterrupt (0x10);		// screenseg is actually a main mem buffer
+		  // screenseg is actually a main mem buffer
 		  break;
 	  case EGAGR: 
-		  geninterrupt (0x10);
 		  screenseg=0xa000;
 		  break;
 #ifdef VGAGAME

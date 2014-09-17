@@ -38,7 +38,7 @@
 extern int _argc;
 extern char **_argv;
 
-#define	HELPTEXTLINKED
+//#define	HELPTEXTLINKED
 
 #define	MaxString	128	// Maximum input string size
 

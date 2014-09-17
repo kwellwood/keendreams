@@ -299,7 +299,8 @@ US_Startup(void)
 	if (US_Started)
 		return;
 
-	harderr(USL_HardError);	// Install the fatal error handler
+	// XXX: Maybe set up signal handlers on Linux?
+	//harderr(USL_HardError);	// Install the fatal error handler
 
 	US_InitRndT(true);		// Initialize the random number generator
 
@@ -590,7 +591,7 @@ US_PrintUnsigned(longword n)
 {
 	char	buffer[32];
 
-	US_Print(ultoa(n,buffer,10));
+	US_Print("NUM"); // XXX ultoa(n,buffer,10));
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -603,7 +604,7 @@ US_PrintSigned(long n)
 {
 	char	buffer[32];
 
-	US_Print(ltoa(n,buffer,10));
+	US_Print("SNUM"); // XXX ltoa(n,buffer,10));
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -2469,7 +2470,7 @@ extern	char	far gametext,far context,far story;
 		}
 
 		MM_GetPtr(&dupe,5600);
-		_fmemcpy((char far *)dupe,buf,5600);
+		memcpy((char *)dupe,buf,5600);
 
 		USL_DoHelp(dupe,5600);
 
@@ -2499,11 +2500,11 @@ extern	char	far gametext,far context,far story;
 			Quit("Bad help button number");
 		}
 
-		if ((file = open(name,O_RDONLY | O_TEXT)) == -1)
+		if ((file = open(name,O_RDONLY )) == -1)
 			USL_HandleError(errno);
 		else
 		{
-			len = filelength(file);
+			len = CAL_filelength(file);
 			MM_GetPtr(&buf,len);
 
 			if (CA_FarRead(file,(byte far *)buf,len))
@@ -2624,7 +2625,7 @@ USL_CtlDLButtonCustom(UserCall call,word i,word n)
 		if (ip->sel & ui_Disabled)
 			return(false);
 
-		LeaveDriveOn++;
+		//LeaveDriveOn++;
 		filename = USL_GiveSaveName(n / 2);
 
 		US_SaveWindow(&wr);
@@ -2663,7 +2664,7 @@ USL_CtlDLButtonCustom(UserCall call,word i,word n)
 		VW_ShowCursor();
 		US_RestoreWindow(&wr);
 
-		LeaveDriveOn--;
+		//LeaveDriveOn--;
 		break;
 	}
 	return(false);
@@ -2712,7 +2713,7 @@ USL_CtlDSButtonCustom(UserCall call,word i,word n)
 		VW_HideCursor();
 		VW_UpdateScreen();
 
-		LeaveDriveOn++;
+		//LeaveDriveOn++;
 		filename = USL_GiveSaveName(n / 2);
 		err = 0;
 		file = open(filename,O_CREAT | O_WRONLY,
@@ -2737,7 +2738,7 @@ USL_CtlDSButtonCustom(UserCall call,word i,word n)
 			remove(filename);
 			ok = false;
 		}
-		LeaveDriveOn--;
+		//LeaveDriveOn--;
 
 		VW_ShowCursor();
 		US_RestoreWindow(&wr);
@@ -3152,8 +3153,8 @@ USL_SetUpCtlPanel(void)
 
 	// Set up SoundSource
 	USL_TurnOff(CtlSSSPanels);
-	CtlSSSPanels[0].sel = ssIsTandy? ui_Selected : ui_Normal;
-	CtlSSSPanels[1].sel = (ssPort == 2)? ui_Selected : ui_Normal;
+	CtlSSSPanels[0].sel = ui_Disabled; //ssIsTandy? ui_Selected : ui_Normal;
+	CtlSSSPanels[1].sel = ui_Disabled; //(ssPort == 2)? ui_Selected : ui_Normal;
 
 	// Set up Music
 	USL_TurnOff(CtlMPanels);
@@ -3185,8 +3186,8 @@ USL_TearDownCtlPanel(void)
 	if (i != -1)
 		SD_SetSoundMode(i);
 
-	ssIsTandy = CtlSSSPanels[0].sel & ui_Selected;
-	ssPort = (CtlSSSPanels[1].sel & ui_Selected)? 2 : 1;
+	//ssIsTandy = CtlSSSPanels[0].sel & ui_Selected;
+	//ssPort = (CtlSSSPanels[1].sel & ui_Selected)? 2 : 1;
 
 	i = USL_FindDown(CtlMPanels);
 	if (i != -1)
@@ -3494,7 +3495,7 @@ US_DisplayHighScores(int which)
 			y = PrintY;
 
 		PrintX = x + (7 * 8);
-		ultoa(s->score,buffer,10);
+		// XXX ultoa(s->score,buffer,10);
 		for (str = buffer;*str;str++)
 			*str = *str + (129 - '0');	// Used fixed-width numbers (129...)
 		USL_MeasureString(buffer,&w,&h);

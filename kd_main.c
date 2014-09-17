@@ -90,8 +90,8 @@ void DebugMemory (void)
 
 	US_CPrint ("Memory Usage");
 	US_CPrint ("------------");
-	US_Print ("Total     :");
-	US_PrintUnsigned (mminfo.mainmem/1024);
+	// XXX US_Print ("Total     :");
+	// XXX US_PrintUnsigned (mminfo.mainmem/1024);
 	US_Print ("k\nFree      :");
 	US_PrintUnsigned (MM_UnusedMemory()/1024);
 	US_Print ("k\nWith purge:");
@@ -376,7 +376,6 @@ void Quit (char *error)
   ShutdownId ();
   if (error && *error)
   {
-	clrscr();
 	puts(error);
 	puts("\n");
 	exit(1);
@@ -415,24 +414,8 @@ void InitGame (void)
 #endif
 
 
-#if GRMODE == EGAGR
-	if (mminfo.mainmem < 335l*1024)
-	{
-#pragma	warn	-pro
-#pragma	warn	-nod
-		clrscr();			// we can't include CONIO because of a name conflict
-#pragma	warn	+nod
-#pragma	warn	+pro
-		puts ("There is not enough memory available to play the game reliably.  You can");
-		puts ("play anyway, but an out of memory condition will eventually pop up.  The");
-		puts ("correct solution is to unload some TSRs or rename your CONFIG.SYS and");
-		puts ("AUTOEXEC.BAT to free up more memory.\n");
-		puts ("Do you want to (Q)uit, or (C)ontinue?");
-		i = bioskey (0);
-		if ( (i>>8) != sc_C)
-			Quit ("");
-	}
-#endif
+	// XXX: Removed check that the user has at least 335KB of memory if
+	// EGA
 
 	US_TextScreen();
 
@@ -497,7 +480,7 @@ void main (int argc, char **argv)
 	_argc = argc;
 	_argv = argv;
 
-	if (stricmp(_argv[1], "/VER") == 0)
+	if (_argc > 1 && stricmp(_argv[1], "/VER") == 0)
 	{
 		printf("\nKeen Dreams version 1.93 (Rev 1)\n");
 		printf("developed for use with 100%% IBM compatibles\n");
@@ -508,7 +491,7 @@ void main (int argc, char **argv)
 		exit(0);
 	}
 
-	if (stricmp(_argv[1], "/?") == 0)
+	if (_argc > 1 && stricmp(_argv[1], "/?") == 0)
 	{
 		printf("\nKeen Dreams version 1.93\n");
 		printf("Copyright 1991-1993 Softdisk Publishing.\n\n");
@@ -525,8 +508,8 @@ void main (int argc, char **argv)
 		exit(0);
 	}
 
-	textcolor(7);
-	textbackground(0);
+	//textcolor(7);
+	//textbackground(0);
 
 	InitGame();
 
