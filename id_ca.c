@@ -43,14 +43,14 @@ loaded into the data segment
 
 typedef struct
 {
-  unsigned bit0,bit1;	// 0-255 is a character, > is a pointer to a node
+  uint16_t bit0,bit1;	// 0-255 is a character, > is a pointer to a node
 } huffnode;
 
 
 typedef struct
 {
-	unsigned	RLEWtag;
-	long		headeroffsets[100];
+	uint16_t 	RLEWtag;
+	uint32_t	headeroffsets[100];
 	byte		headersize[100];		// headers are very small
 	byte		tileinfo[];
 } mapfiletype;
@@ -87,8 +87,8 @@ int			profilehandle;
 =============================================================================
 */
 
-extern	long		CGAhead;
-extern	long		EGAhead;
+extern	int32_t		CGAhead;
+extern	int32_t		EGAhead;
 extern	byte	CGAdict;
 extern	byte	EGAdict;
 extern	byte		maphead;
@@ -97,8 +97,8 @@ extern	byte		audiohead;
 extern	byte	audiodict;
 
 
-long		 *grstarts;	// array of offsets in egagraph, -1 for sparse
-long		 *audiostarts;	// array of offsets in audio / audiot
+uint32_t	*grstarts;	// array of offsets in egagraph, -1 for sparse
+uint32_t	*audiostarts;	// array of offsets in audio / audiot
 
 #ifdef GRHEADERLINKED
 huffnode	*grhuffman;
@@ -123,7 +123,7 @@ int			grhandle;		// handle to EGAGRAPH
 int			maphandle;		// handle to MAPTEMP / GAMEMAPS
 int			audiohandle;	// handle to AUDIOT / AUDIO
 
-long		chunkcomplen,chunkexplen;
+uint32_t		chunkcomplen,chunkexplen;
 
 SDMode		oldsoundmode;
 
@@ -417,18 +417,18 @@ void CA_RLEWexpand (word *src, word *dest, int expLength, word rletag)
 void CAL_SetupGrFile (void)
 {
 	int handle;
-	long headersize,length;
+	uint32_t headersize,length;
 	memptr compseg;
 
 #ifdef GRHEADERLINKED
 
 #if GRMODE == EGAGR
 	grhuffman = (huffnode *)&EGAdict;
-	grstarts = (long  *)(&EGAhead);
+	grstarts = (uint32_t *)(&EGAhead);
 #endif
 #if GRMODE == CGAGR
 	grhuffman = (huffnode *)&CGAdict;
-	grstarts = (long  *)(&CGAhead);
+	grstarts = (uint32_t  *)(&CGAhead);
 #endif
 
 	CAL_OptimizeNodes (grhuffman);
@@ -439,8 +439,8 @@ void CAL_SetupGrFile (void)
 // load ???dict.ext (huffman dictionary for graphics files)
 //
 
-//	if ((handle = open(GREXT"DICT.",
-	if ((handle = open("KDREAMS.EGA",
+	if ((handle = open(GREXT"DICT."EXTENSION,
+//	if ((handle = open("KDREAMS.EGA",
 		 O_RDONLY)) == -1)
 		Quit ("Can't open KDREAMS.EGA!");
 
@@ -518,15 +518,15 @@ void CAL_SetupGrFile (void)
 void CAL_SetupMapFile (void)
 {
 	int handle,i;
-	long length;
+	uint32_t length;
 	byte  *buffer;
 
 //
 // load maphead.ext (offsets and tileinfo for map file)
 //
 #ifndef MAPHEADERLINKED
-//	if ((handle = open("MAPHEAD."EXTENSION,
-	if ((handle = open("KDREAMS.MAP",
+	if ((handle = open("MAPHEAD."EXTENSION,
+//	if ((handle = open("KDREAMS.MAP",
 		 O_RDONLY)) == -1)
 		Quit ("Can't open KDREAMS.MAP!");
 	length = CAL_filelength(handle);
@@ -569,7 +569,7 @@ void CAL_SetupMapFile (void)
 void CAL_SetupAudioFile (void)
 {
 	int handle,i;
-	long length;
+	uint32_t length;
 	byte  *buffer;
 
 //
@@ -586,7 +586,7 @@ void CAL_SetupAudioFile (void)
 #else
 	audiohuffman = (huffnode *)&audiodict;
 	CAL_OptimizeNodes (audiohuffman);
-	audiostarts = (long  *)(&audiohead);
+	audiostarts = (uint32_t *)(&audiohead);
 #endif
 
 //
@@ -668,7 +668,7 @@ void CA_Shutdown (void)
 
 void CA_CacheAudioChunk (int chunk)
 {
-	long	pos,compressed,expanded;
+	uint32_t pos,compressed,expanded;
 	memptr	bigbufferseg;
 	byte	 *source;
 
@@ -706,7 +706,7 @@ void CA_CacheAudioChunk (int chunk)
 		source = bigbufferseg;
 	}
 
-	expanded = *(long  *)source;
+	expanded = *(uint32_t *)source;
 	source += 4;			// skip over length
 	MM_GetPtr ((memptr)&audiosegs[chunk],expanded);
 	CAL_HuffExpand (source,audiosegs[chunk],expanded,audiohuffman);
@@ -892,8 +892,8 @@ asm	mov	ds,ax
 void CAL_CacheSprite (int chunk, char  *compressed)
 {
 	int i;
-	unsigned shiftstarts[5];
-	unsigned smallplane,bigplane,expanded;
+	uint16_t shiftstarts[5];
+	uint16_t smallplane,bigplane,expanded;
 	spritetabletype  *spr;
 	spritetype  *dest;
 
@@ -1019,7 +1019,7 @@ void CAL_CacheSprite (int chunk, char  *compressed)
 
 void CAL_ExpandGrChunk (int chunk, byte  *source)
 {
-	long	pos,compressed,expanded;
+	uint32_t pos,compressed,expanded;
 	int		next;
 	spritetabletype	*spr;
 
@@ -1058,7 +1058,7 @@ void CAL_ExpandGrChunk (int chunk, byte  *source)
 	//
 	// everything else has an explicit size longword
 	//
-		expanded = *(long  *)source;
+		expanded = *(uint32_t  *)source;
 		source += 4;			// skip over length
 	}
 
@@ -1088,7 +1088,7 @@ void CAL_ExpandGrChunk (int chunk, byte  *source)
 
 void CAL_ReadGrChunk (int chunk)
 {
-	long	pos,compressed,expanded;
+	uint32_t pos,compressed,expanded;
 	memptr	bigbufferseg;
 	byte	 *source;
 	int		next;
@@ -1141,7 +1141,7 @@ void CAL_ReadGrChunk (int chunk)
 
 void CA_CacheGrChunk (int chunk)
 {
-	long	pos,compressed,expanded;
+	uint32_t pos,compressed,expanded;
 	memptr	bigbufferseg;
 	byte	 *source;
 	int		next;
@@ -1198,7 +1198,7 @@ void CA_CacheGrChunk (int chunk)
 
 void CA_CacheMap (int mapnum)
 {
-	long	pos,compressed,expanded;
+	uint32_t pos,compressed,expanded;
 	int		plane;
 	memptr	*dest,bigbufferseg,buffer2seg;
 	unsigned	size;
@@ -1411,8 +1411,8 @@ void CA_CacheMarks (char *title, boolean cachedownlevel)
 	boolean dialog;
 	int 	i,next,homex,homey,x,y,thx,thy,numcache,lastx,xl,xh;
 	long	barx,barstep;
-	long	pos,endpos,nextpos,nextendpos,compressed;
-	long	bufferstart,bufferend;	// file position of general buffer
+	uint32_t	pos,endpos,nextpos,nextendpos,compressed;
+	uint32_t bufferstart,bufferend;	// file position of general buffer
 	byte	 *source;
 	memptr	bigbufferseg;
 
