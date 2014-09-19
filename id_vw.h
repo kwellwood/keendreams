@@ -37,9 +37,9 @@
 #define	G_P_SHIFT		4	// global >> ?? = pixels
 
 #if GRMODE == EGAGR
-#define	SCREENWIDTH		64
-#define CHARWIDTH		1
-#define TILEWIDTH		2
+#define	SCREENWIDTH		64*8
+#define CHARWIDTH		8
+#define TILEWIDTH		16
 #endif
 #if GRMODE == CGAGR
 #define	SCREENWIDTH		128
@@ -186,6 +186,8 @@ extern	unsigned	displayofs;		// origin of port on visable screen
 extern	unsigned	panx,pany;		// panning adjustments inside port in pixels
 extern	unsigned	pansx,pansy;
 extern	unsigned	panadjust;		// panx/pany adjusted by screen resolution
+#define VW_VIDEOMEM_SIZE 512*240*3
+extern uint8_t vw_videomem[VW_VIDEOMEM_SIZE];
 
 extern	unsigned	screenseg;		// normally 0xa000 or buffer segment
 
@@ -210,6 +212,12 @@ extern	word 		**shifttabletable;
 
 //===========================================================================
 
+extern unsigned lastdrawnbuffer;
+extern unsigned lastdrawnpan;
+
+void VW_GL_UpdateGLBuffer();
+
+//===========================================================================
 
 void	VW_Startup (void);
 void	VW_Shutdown (void);
@@ -259,11 +267,11 @@ void VW_DrawTile8(unsigned x, unsigned y, unsigned tile);
 #if GRMODE == EGAGR
 
 #define VW_DrawTile8M(x,y,t) \
-	VW_MaskBlock(grsegs[STARTTILE8M],(t)*40,bufferofs+ylookup[y]+(x),1,8,8)
+	VW_MaskBlock(grsegs[STARTTILE8M],(t)*40,bufferofs+ylookup[y]+(x),8,8,8)
 #define VW_DrawTile16(x,y,t) \
-	VW_MemToScreen(grsegs[STARTTILE16+t],bufferofs+ylookup[y]+(x),2,16)
+	VW_MemToScreen(grsegs[STARTTILE16+t],bufferofs+ylookup[y]+(x),16,16)
 #define VW_DrawTile16M(x,y,t) \
-	VW_MaskBlock(grsegs[STARTTILE16M],(t)*160,bufferofs+ylookup[y]+(x),2,16,32)
+	VW_MaskBlock(grsegs[STARTTILE16M],(t)*160,bufferofs+ylookup[y]+(x),16,16,32)
 
 #endif
 

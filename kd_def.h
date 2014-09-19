@@ -73,14 +73,14 @@ typedef	enum	{nothing,keenobj,powerobj,doorobj,
 
 typedef struct
 {
-  int 		leftshapenum,rightshapenum;
+  int16_t 		leftshapenum,rightshapenum;
   enum		{step,slide,think,stepthink,slidethink} progress;
   boolean	skippable;
 
   boolean	pushtofloor;
-  int tictime;
-  int xmove;
-  int ymove;
+  int16_t tictime;
+  int16_t xmove;
+  int16_t ymove;
   void (*think) ();
   void (*contact) ();
   void (*react) ();
@@ -90,15 +90,15 @@ typedef struct
 
 typedef	struct
 {
-	unsigned	worldx,worldy;
+	uint16_t	worldx,worldy;
 	boolean	leveldone[GAMELEVELS];
-	long	score,nextextra;
-	int		flowerpowers;
-	int		boobusbombs,bombsthislevel;
-	int		keys;
-	int		mapon;
-	int		lives;
-	int		difficulty;
+	int32_t	score,nextextra;
+	int16_t		flowerpowers;
+	int16_t		boobusbombs,bombsthislevel;
+	int16_t		keys;
+	int16_t		mapon;
+	int16_t		lives;
+	int16_t		difficulty;
 } gametype;
 
 
@@ -107,26 +107,26 @@ typedef struct	objstruct
 	classtype	obclass;
 	enum		{no,yes,allways,removable} active;
 	boolean		needtoreact,needtoclip;
-	unsigned	nothink;
-	unsigned	x,y;
+	uint16_t	nothink;
+	uint16_t	x,y;
 
-	int			xdir,ydir;
-	int			xmove,ymove;
-	int			xspeed,yspeed;
+	int16_t			xdir,ydir;
+	int16_t			xmove,ymove;
+	int16_t			xspeed,yspeed;
 
-	int			ticcount,ticadjust;
+	int16_t			ticcount,ticadjust;
 	statetype	*state;
 
-	unsigned	shapenum;
+	uint16_t	shapenum;
 
-	unsigned	left,top,right,bottom;	// hit rectangle
-	unsigned	midx;
-	unsigned	tileleft,tiletop,tileright,tilebottom;	// hit rect in tiles
-	unsigned	tilemidx;
+	uint16_t	left,top,right,bottom;	// hit rectangle
+	uint16_t	midx;
+	uint16_t	tileleft,tiletop,tileright,tilebottom;	// hit rect in tiles
+	uint16_t	tilemidx;
 
-	int			hitnorth,hiteast,hitsouth,hitwest;	// wall numbers contacted
+	int16_t			hitnorth,hiteast,hitsouth,hitwest;	// wall numbers contacted
 
-	int			temp1,temp2,temp3,temp4;
+	int16_t			temp1,temp2,temp3,temp4;
 
 	void		*sprite;
 

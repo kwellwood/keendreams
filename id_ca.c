@@ -47,7 +47,7 @@ typedef struct
 } huffnode;
 
 
-typedef struct
+typedef struct __attribute__((__packed__))
 {
 	uint16_t 	RLEWtag;
 	uint32_t	headeroffsets[100];
@@ -67,10 +67,10 @@ typedef struct
 byte 			*tinf;
 int			mapon;
 
-unsigned		*mapsegs[3];
+uint16_t		*mapsegs[3];
 maptype			*mapheaderseg[NUMMAPS];
 byte			*audiosegs[NUMSNDCHUNKS];
-void			*grsegs[NUMCHUNKS];
+void			*grsegs[NUMCHUNKS] = {0};
 
 byte		grneeded[NUMCHUNKS];
 byte		ca_levelbit,ca_levelnum;
@@ -97,8 +97,8 @@ extern	byte		audiohead;
 extern	byte	audiodict;
 
 
-uint32_t	*grstarts;	// array of offsets in egagraph, -1 for sparse
-uint32_t	*audiostarts;	// array of offsets in audio / audiot
+int32_t		*grstarts;	// array of offsets in egagraph, -1 for sparse
+int32_t		*audiostarts;	// array of offsets in audio / audiot
 
 #ifdef GRHEADERLINKED
 huffnode	*grhuffman;
@@ -1202,7 +1202,7 @@ void CA_CacheMap (int mapnum)
 	int		plane;
 	memptr	*dest,bigbufferseg,buffer2seg;
 	unsigned	size;
-	unsigned		*source;
+	uint16_t	*source;
 
 
 //
@@ -1411,7 +1411,7 @@ void CA_CacheMarks (char *title, boolean cachedownlevel)
 	boolean dialog;
 	int 	i,next,homex,homey,x,y,thx,thy,numcache,lastx,xl,xh;
 	long	barx,barstep;
-	uint32_t	pos,endpos,nextpos,nextendpos,compressed;
+	int32_t	pos,endpos,nextpos,nextendpos,compressed;
 	uint32_t bufferstart,bufferend;	// file position of general buffer
 	byte	 *source;
 	memptr	bigbufferseg;

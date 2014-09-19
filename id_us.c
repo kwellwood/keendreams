@@ -553,8 +553,12 @@ void
 US_Print(char *s)
 {
 	char	c,*se;
+	char str[512];
 	word	w,h;
 
+	// TODO: This is a horrible hack, as gcc no longer supports -fwritable-strings
+	strcpy(str, s);
+	s = str;
 	while (*s)
 	{
 		se = s;
@@ -678,12 +682,16 @@ US_CPrint(char *s)
 	char	c,*se;
 	word	w,h;
 
+	char str[512];
+	strcpy(str, s);
+	s = str;
+	
 	while (*s)
 	{
 		se = s;
 		while ((c = *se) && (c != '\n'))
 			se++;
-		//*se = '\0';
+		*se = '\0';
 
 		US_CPrintLine(s);
 
@@ -954,7 +962,7 @@ US_LineInput(int x,int y,char *buf,char *def,boolean escok,
 	cursormoved = redraw = true;
 
 	cursorvis = done = false;
-	lasttime = TimeCount;
+	lasttime = SD_GetTimeCount();
 	LastASCII = key_None;
 	LastScan = sc_None;
 
@@ -1076,13 +1084,13 @@ US_LineInput(int x,int y,char *buf,char *def,boolean escok,
 		if (cursormoved)
 		{
 			cursorvis = false;
-			lasttime = TimeCount - TickBase;
+			lasttime = SD_GetTimeCount() - TickBase;
 
 			cursormoved = false;
 		}
-		if (TimeCount - lasttime > TickBase / 2)
+		if (SD_GetTimeCount() - lasttime > TickBase / 2)
 		{
-			lasttime = TimeCount;
+			lasttime = SD_GetTimeCount();
 
 			cursorvis ^= true;
 		}
@@ -1973,17 +1981,17 @@ USL_CtlCKbdButtonCustom(UserCall call,word i,word n)
 	VW_UpdateScreen();
 
 	LastScan = sc_None;
-	time = TimeCount;
+	time = SD_GetTimeCount();
 	state = true;
 	do
 	{
 		IN_PumpEvents();
-		if (TimeCount - time > 35)	// Half-second delays
+		if (SD_GetTimeCount() - time > 35)	// Half-second delays
 		{
 			state ^= true;
 			VWB_DrawPic(ip->r.ul.x,ip->r.ul.y,state? ip->picdown : ip->picup);
 			VW_UpdateScreen();
-			time = TimeCount;
+			time = SD_GetTimeCount();
 		}
 		if (US_UpdateCursor())
 		{
@@ -2257,9 +2265,9 @@ USL_DoHelp(memptr text,long len)
 	{
 		if (moved)
 		{
-			while (TimeCount - lasttime < 5)
-				;
-			lasttime = TimeCount;
+			while (SD_GetTimeCount() - lasttime < 5)
+				IN_PumpEvents();
+			lasttime = SD_GetTimeCount();
 
 			if (scroll == -1)
 			{
@@ -2291,7 +2299,7 @@ USL_DoHelp(memptr text,long len)
 					VWB_Bar(WindowX,WindowY + (loc * h),WindowW,num * h,WHITE);
 					USL_DrawHelp((char far *)text,top,top + num,loc,h,lp);
 
-					pixdiv = 8;
+					pixdiv = 1;//8;
 					base = displayofs + panadjust + (WindowX / pixdiv);
 				}
 				else if (grmode == VGAGR)
@@ -2369,7 +2377,7 @@ USL_DoHelp(memptr text,long len)
 		}
 		else if (info.button0 || info.button1)
 			done = true;
-		else if (IN_KeyDown(LastScan))
+		else if (IN_PumpEvents(), IN_KeyDown(LastScan))
 		{
 			switch (LastScan)
 			{
@@ -2412,6 +2420,7 @@ USL_DoHelp(memptr text,long len)
 				break;
 			}
 		}
+		VW_UpdateScreen();
 	}
 	IN_ClearKeysDown();
 	do
@@ -3290,7 +3299,7 @@ US_ControlPanel(void)
 		if (FlushHelp)
 		{
 			lasti = -2;
-			lasttime = TimeCount;
+			lasttime = SD_GetTimeCount();
 			FlushHelp = false;
 		}
 		if (inrect)
@@ -3374,13 +3383,13 @@ US_ControlPanel(void)
 
 				if ((ip->type == uii_Button) && !(ip->sel & ui_Disabled))
 				{
-					lasttime = TimeCount;
+					lasttime = SD_GetTimeCount();
 
 					ip->sel |= ui_Selected;
 					USL_DrawItem(hiti,hitn);
 					VW_UpdateScreen();
 
-					while (TimeCount - lasttime < TickBase / 4)
+					while (SD_GetTimeCount() - lasttime < TickBase / 4)
 						IN_PumpEvents();
 					lasttime = TimeCount;
 
@@ -3388,7 +3397,7 @@ US_ControlPanel(void)
 					USL_DrawItem(hiti,hitn);
 					VW_UpdateScreen();
 
-					while (TimeCount - lasttime < TickBase / 4)
+					while (SD_GetTimeCount() - lasttime < TickBase / 4)
 						IN_PumpEvents();
 				}
 
@@ -3413,11 +3422,11 @@ US_ControlPanel(void)
 		{
 			lastx = CursorX;
 			lasty = CursorY;
-			lasttime = TimeCount;
+			lasttime = SD_GetTimeCount();
 		}
-		if (TimeCount - lasttime > TickBase * 10)
+		if (SD_GetTimeCount() - lasttime > TickBase * 10)
 		{
-			if (((TimeCount - lasttime) / TickBase) & 2)
+			if (((SD_GetTimeCount() - lasttime) / TickBase) & 2)
 				fontcolor = F_SECONDCOLOR;
 			USL_ShowHelp("Press F1 for Help");
 			fontcolor = F_BLACK;

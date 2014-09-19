@@ -314,7 +314,7 @@ static void INL_HandleSDLEvent(SDL_Event *event)
 		break;
 	case SDL_KEYUP:
 		sc = INL_SDLKToScanCode(event->key.keysym.sym);
-		INL_KeyService(sc);
+		INL_KeyService(sc | 0x80);
 		break;
 	}
 }
@@ -1056,7 +1056,7 @@ IN_UserInput(longword delay,boolean clear)
 {
 	longword	lasttime;
 
-	lasttime = TimeCount;
+	lasttime = SD_GetTimeCount();
 	do
 	{
 		if (IN_IsUserInput())
@@ -1065,6 +1065,6 @@ IN_UserInput(longword delay,boolean clear)
 				IN_AckBack();
 			return(true);
 		}
-	} while (TimeCount - lasttime < delay);
+	} while (SD_GetTimeCount() - lasttime < delay);
 	return(false);
 }

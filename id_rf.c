@@ -68,7 +68,7 @@ unsigned	SX_T_SHIFT;		// screen x >> ?? = tile EGA = 1, CGA = 2;
 #define	SY_T_SHIFT		4	// screen y >> ?? = tile
 
 
-#define	EGAPORTSCREENWIDE	42
+#define	EGAPORTSCREENWIDE	42*8
 #define	CGAPORTSCREENWIDE	84
 #define	PORTSCREENHIGH  224
 
@@ -86,8 +86,8 @@ unsigned	SX_T_SHIFT;		// screen x >> ?? = tile EGA = 1, CGA = 2;
 
 typedef	struct spriteliststruct
 {
-	int			screenx,screeny;
-	int			width,height;
+	int16_t 		screenx,screeny;
+	int16_t			width,height;
 
 	unsigned	grseg,sourceofs,planesize;
 	drawtype	draw;
@@ -106,16 +106,16 @@ typedef struct
 
 typedef struct
 {
-	unsigned	current;		// foreground tiles have high bit set
+	uint16_t	current;		// foreground tiles have high bit set
 	int			count;
 } tiletype;
 
 
 typedef struct animtilestruct
 {
-	unsigned	x,y,tile;
+	uint16_t	x,y,tile;
 	tiletype	*chain;
-	unsigned	far *mapplane;
+	uint16_t	*mapplane;
 	struct animtilestruct **prevptr,*nexttile;
 } animtiletype;
 
@@ -127,7 +127,7 @@ typedef struct animtilestruct
 =============================================================================
 */
 
-unsigned	tics;
+uint16_t	tics;
 long		lasttimecount;
 
 boolean		compatability;			// crippled refresh for wierdo SVGAs
@@ -197,7 +197,7 @@ unsigned	screenpage;			// screen currently being displayed
 unsigned	otherpage;
 
 #if GRMODE == EGAGR
-unsigned	tilecache[NUMTILE16];
+uint16_t	tilecache[NUMTILE16];
 #endif
 
 spritelisttype	spritearray[MAXSPRITES],*prioritystart[PRIORITIES],
@@ -254,7 +254,7 @@ static	char *ParmStrings[] = {"comp",""};
 void RF_Startup (void)
 {
 	int i,x,y;
-	unsigned	*blockstart;
+	uint16_t	*blockstart;
 
 	if (grmode == EGAGR)
 		for (i = 1;i < _argc;i++)
@@ -276,7 +276,7 @@ void RF_Startup (void)
 
 	if (grmode == EGAGR)
 	{
-		SX_T_SHIFT = 1;
+		SX_T_SHIFT = 4;
 
 		baseupdatestart[0] = &update[0][UPDATESPARESIZE];
 		baseupdatestart[1] = &update[1][UPDATESPARESIZE];
@@ -344,7 +344,7 @@ void RF_Shutdown (void)
 void RF_NewMap (void)
 {
 	int i,x,y;
-	unsigned spot,*table;
+	uint16_t spot,*table;
 
 	mapwidth = mapheaderseg[mapon]->width;
 	mapbyteswide = 2*mapwidth;
@@ -389,7 +389,7 @@ void RF_NewMap (void)
 	RFL_InitAnimList ();
 
 
-	lasttimecount = TimeCount;		// setup for adaptive timing
+	lasttimecount = SD_GetTimeCount();		// setup for adaptive timing
 	tics = 1;
 }
 
@@ -414,8 +414,8 @@ void RF_NewMap (void)
 void RF_MarkTileGraphics (void)
 {
 	unsigned	size;
-	int			tile,next,anims;
-	unsigned	far	*start,far *end,far *info;
+	int16_t		tile,next,anims;
+	uint16_t	*start,*end,*info;
 	unsigned	i,tilehigh;
 
 	memset (allanims,0,sizeof(allanims));
@@ -442,7 +442,7 @@ void RF_MarkTileGraphics (void)
 				for (i=0;i<numanimchains;i++)
 					if (allanims[i].current == tile)
 					{
-						*info = (unsigned)&allanims[i];
+						*info = (uint16_t)(i & 0xFE00);
 						goto nextback;
 					}
 
@@ -453,15 +453,17 @@ void RF_MarkTileGraphics (void)
 				allanims[i].current = tile;
 				allanims[i].count = tinf[SPEED+tile];
 
-				*info = (unsigned)&allanims[i];
+				*info = (uint16_t)(i & 0xFE00);
 				numanimchains++;
 
 				anims = 0;
-				next = tile+(signed char)(tinf[ANIM+tile]);
+				next = tile+((signed char*)tinf)[ANIM+tile];
+				printf("tile %d",tile);
 				while (next != tile)
 				{
+					printf(" -> %d", next);
 					CA_MarkGrChunk(STARTTILE16+next);
-					next += (signed char)(tinf[ANIM+next]);
+					next +=( (signed char*)tinf)[ANIM+next];
 					if (++anims > 20)
 						Quit ("MarkTileGraphics: Unending animation!");
 				}
@@ -492,7 +494,7 @@ nextback:
 				for (i=0;i<numanimchains;i++)
 					if (allanims[i].current == tilehigh)
 					{
-						*info = (unsigned)&allanims[i];
+						*info = (uint16_t)(i & 0xFE00);
 						goto nextfront;
 					}
 
@@ -503,18 +505,21 @@ nextback:
 				allanims[i].current = tilehigh;
 				allanims[i].count = tinf[MSPEED+tile];
 
-				*info = (unsigned)&allanims[i];
+				*info = (uint16_t)(i & 0xFE00);
 				numanimchains++;
 
 				anims = 0;
-				next = tile+(signed char)(tinf[MANIM+tile]);
+				next = tile+((signed char*)tinf)[MANIM+tile];
+				printf("tile %d",tile);
 				while (next != tile)
 				{
+					printf(" -> %d", next);
 					CA_MarkGrChunk(STARTTILE16M+next);
-					next += (signed char)(tinf[MANIM+next]);
+					next += ((signed char*)(tinf))[MANIM+next];
 					if (++anims > 20)
 						Quit ("MarkTileGraphics: Unending animation!");
 				}
+				printf("\n");
 
 			}
 		}
@@ -563,8 +568,8 @@ void RFL_InitAnimList (void)
 
 void RFL_CheckForAnimTile (unsigned x, unsigned y)
 {
-	unsigned 	tile,offset,speed,lasttime,thistime,timemissed;
-	unsigned	far *map;
+	uint16_t 	tile,offset,speed,lasttime,thistime,timemissed;
+	uint16_t	*map;
 	animtiletype	*anim,*next;
 
 // the info plane of each animating tile has a near pointer into allanims[]
@@ -594,7 +599,7 @@ void RFL_CheckForAnimTile (unsigned x, unsigned y)
 		anim->y = y;
 		anim->tile = tile;
 		anim->mapplane = map;
-		anim->chain = (tiletype *)*(mapsegs[2]+offset);
+		anim->chain = &allanims[(mapsegs[2][offset]) & 0x1FF];
 	}
 
 //
@@ -619,7 +624,7 @@ void RFL_CheckForAnimTile (unsigned x, unsigned y)
 		anim->y = y;
 		anim->tile = tile;
 		anim->mapplane = map;
-		anim->chain = (tiletype *)*(mapsegs[2]+offset);
+		anim->chain = &allanims[(mapsegs[2][offset]) & 0x1FF];
 	}
 
 }
@@ -832,7 +837,7 @@ void RFL_CalcOriginStuff (long x, long y)
 	panx = (originxglobal>>G_P_SHIFT) & 15;
 	pansx = panx & 8;
 	pany = pansy = (originyglobal>>G_P_SHIFT) & 15;
-	panadjust = panx/8 + ylookup[pany];
+	panadjust = (panx/8)*8 + ylookup[pany];
 #endif
 
 #if GRMODE == CGAGR
@@ -1698,11 +1703,11 @@ asm	mov	[WORD PTR es:di],UPDATETERMINATE
 //
 // calculate tics since last refresh for adaptive timing
 //
-	if (lasttimecount > TimeCount)
-		lasttimecount = TimeCount;		// if the game was paused a LONG time
+	if (lasttimecount > SD_GetTimeCount())
+		lasttimecount = SD_GetTimeCount();		// if the game was paused a LONG time
 	do
 	{
-		newtime = TimeCount;
+		newtime = SD_GetTimeCount();
 		tics = newtime-lasttimecount;
 	} while (tics<MINTICS);
 	lasttimecount = newtime;

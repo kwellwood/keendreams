@@ -40,31 +40,31 @@ void FreeShape(struct Shape *shape)
 int UnpackEGAShapeToScreen(struct Shape *SHP,int startx,int starty)
 {
 	int currenty;
-	signed char n, Rep, *Src, *Dst[8], loop, Plane;
+	signed char n, *Src,  loop, Plane;
+	uint8_t Rep, *Dst[8];
 	unsigned int BPR, Height;
 	int NotWordAligned;
 
 	NotWordAligned = SHP->BPR & 1;
-	startx>>=3;
+	//startx>>=3;
 	Src = SHP->Data;
 	currenty = starty;
 	Plane = 0;
 	Height = SHP->bmHdr.h;
-	// XXX: When we've got rendering up, return to this.
-	return 0;
 	while (Height--)
 	{
-		Dst[0] = displayofs; //XXX: EGA stuff, needs hackery.//(MK_FP(0xA000,displayofs));
+		Dst[0] = &vw_videomem[displayofs]; //XXX: EGA stuff, needs hackery.//(MK_FP(0xA000,displayofs));
 		Dst[0] += ylookup[currenty];
 		Dst[0] += startx;
 		for (loop=1; loop<SHP->bmHdr.d; loop++)
 			Dst[loop] = Dst[0];
 
+		printf("depth = %d\n", SHP->bmHdr.d);
+		memset(Dst[0], 0, SHP->bmHdr.w);
 
 		for (Plane=0; Plane<SHP->bmHdr.d; Plane++)
 		{
-			// XXX outport(0x3c4,((1<<Plane)<<8)|2);
-
+			uint8_t planemask = 1<<Plane;
 			BPR = ((SHP->BPR+1) >> 1) << 1;               // IGNORE WORD ALIGN
 			while (BPR)
 			{
@@ -79,12 +79,18 @@ int UnpackEGAShapeToScreen(struct Shape *SHP,int startx,int starty)
 					{
 						n = (-n)+1;
 						BPR -= n;
-						Rep = *Src++;
+						Rep = *(uint8_t*)Src++;
 						if ((!BPR) && (NotWordAligned))   // IGNORE WORD ALIGN
 							n--;
 
 						while (n--)
-							*Dst[Plane]++ = Rep;
+						{
+							int px = 0;
+							for (px = 0; px < 8; ++px)
+							{ 
+								*Dst[Plane]++ |= (Rep & (1 << (7-px)))?planemask:0;
+							}
+						}
 					}
 					else
 						BPR--;
@@ -97,7 +103,14 @@ int UnpackEGAShapeToScreen(struct Shape *SHP,int startx,int starty)
 						n--;
 
 					while (n--)
-						*Dst[Plane]++ = *Src++;
+					{
+						int px = 0;
+						for (px = 0; px < 8; ++px)
+						{
+							*Dst[Plane]++ |= ((*(uint8_t*)Src) & (1 << (7-px)))?planemask:0;
+						}
+						Src++;
+					}
 
 					if ((!BPR) && (NotWordAligned))     // IGNORE WORD ALIGN
 						Src++;
@@ -106,7 +119,6 @@ int UnpackEGAShapeToScreen(struct Shape *SHP,int startx,int starty)
 		}
 		currenty++;
 	}
-
 	return(0);
 }
 

@@ -20,6 +20,7 @@
 
 #include "id_heads.h"
 #include <SDL2/SDL.h>
+#include <GL/glew.h>
 
 /*
 =============================================================================
@@ -36,7 +37,7 @@
 #if GRMODE == EGAGR
 #define SCREENXMASK		(~7)
 #define SCREENXPLUS		(7)
-#define SCREENXDIV		(8)
+#define SCREENXDIV		(1)
 #endif
 
 #if GRMODE == CGAGR
@@ -56,8 +57,8 @@ grtype		grmode;			// CGAgr, EGAgr, VGAgr
 SDL_Window	*window;
 SDL_GLContext	glcontext;
 
-unsigned	bufferofs;		// hidden area to draw to before displaying
-unsigned	displayofs;		// origin of the visable screen
+unsigned	bufferofs = 0;		// hidden area to draw to before displaying
+unsigned	displayofs = 0;		// origin of the visable screen
 unsigned	panx,pany;		// panning adjustments inside port in pixels
 unsigned	pansx,pansy;	// panning adjustments inside port in screen
 							// block limited pixel values (ie 0/8 for ega x)
@@ -94,6 +95,7 @@ int			cursorvisible;
 int			cursornumber,cursorwidth,cursorheight,cursorx,cursory;
 memptr		cursorsave;
 unsigned	cursorspot;
+boolean		cursorhw = true;			// Are we using a hardware cursor?
 
 extern	unsigned	bufferwidth,bufferheight;	// used by font drawing stuff
 
@@ -148,6 +150,9 @@ Quit ("Improper video card!  If you really have a CGA card that I am not \n"
 	
 	window = SDL_CreateWindow("Keen Dreams", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 320, 200, SDL_WINDOW_OPENGL);
 	glcontext = SDL_GL_CreateContext(window);
+	glewInit();
+	glViewport(0,0,320,200);
+	VW_GL_Init();
 }
 
 //===========================================================================
@@ -341,6 +346,8 @@ void VW_SetLineWidth (int width)
 	ylookup[i]=offset;
 	offset += width;
   }
+  
+  VW_GL_UpdateLineWidth();
 }
 
 //===========================================================================
@@ -489,35 +496,13 @@ unsigned char rightmask[8] = {0x80,0xc0,0xe0,0xf0,0xf8,0xfc,0xfe,0xff};
 
 void VW_Hlin(unsigned xl, unsigned xh, unsigned y, unsigned color)
 {
-  unsigned dest,xlb,xhb,maskleft,maskright,mid;
-
-	xlb=xl/8;
-	xhb=xh/8;
-
-	EGAWRITEMODE(2);
-	EGAMAPMASK(15);
-
-	maskleft = leftmask[xl&7];
-	maskright = rightmask[xh&7];
-
-	mid = xhb-xlb-1;
-	dest = bufferofs+ylookup[y]+xlb;
-
-  if (xlb==xhb)
-  {
-  //
-  // entire line is in one byte
-  //
-
-	maskleft&=maskright;
-
-	// XXX old asm
-	goto	done;
-  }
-  // XXX old asm
-done:
-	EGABITMASK(255);
-	EGAWRITEMODE(0);
+	uint8_t *screen = &vw_videomem[bufferofs];
+	unsigned x;
+	for(x = xl; x < xh; ++x)
+	{
+		screen[y*linewidth+x] = color;
+	}
+	
 }
 #endif
 
@@ -570,9 +555,6 @@ void VW_Hlin(unsigned xl, unsigned xh, unsigned y, unsigned color)
 =
 ==================
 */
-
-#if GRMODE == CGAGR
-
 void VW_Bar (unsigned x, unsigned y, unsigned width, unsigned height,
 	unsigned color)
 {
@@ -581,48 +563,6 @@ void VW_Bar (unsigned x, unsigned y, unsigned width, unsigned height,
 	while (height--)
 		VW_Hlin (x,xh,y++,color);
 }
-
-#endif
-
-
-#if	GRMODE == EGAGR
-
-void VW_Bar (unsigned x, unsigned y, unsigned width, unsigned height,
-	unsigned color)
-{
-	unsigned dest,xh,xlb,xhb,maskleft,maskright,mid;
-
-	xh = x+width-1;
-	xlb=x/8;
-	xhb=xh/8;
-
-	EGAWRITEMODE(2);
-	EGAMAPMASK(15);
-
-	maskleft = leftmask[x&7];
-	maskright = rightmask[xh&7];
-
-	mid = xhb-xlb-1;
-	dest = bufferofs+ylookup[y]+xlb;
-
-	if (xlb==xhb)
-	{
-	//
-	// entire line is in one byte
-	//
-
-		maskleft&=maskright;
-
-		goto	done;
-	}
-
-
-done:
-	EGABITMASK(255);
-	EGAWRITEMODE(0);
-}
-
-#endif
 
 //==========================================================================
 
@@ -716,9 +656,12 @@ These only work in the context of the double buffered update routines
 
 void VWL_DrawCursor (void)
 {
-	cursorspot = bufferofs + ylookup[cursory+pansy]+(cursorx+pansx)/SCREENXDIV;
-	VW_ScreenToMem(cursorspot,cursorsave,cursorwidth,cursorheight);
-	VWB_DrawSprite(cursorx,cursory,cursornumber);
+	if (!cursorhw)
+	{
+		cursorspot = bufferofs + ylookup[cursory+pansy]+(cursorx+pansx)/SCREENXDIV;
+		VW_ScreenToMem(cursorspot,cursorsave,cursorwidth,cursorheight);
+		VWB_DrawSprite(cursorx,cursory,cursornumber);
+	}
 }
 
 
@@ -735,10 +678,13 @@ void VWL_DrawCursor (void)
 
 void VWL_EraseCursor (void)
 {
-	VW_MemToScreen(cursorsave,cursorspot,cursorwidth,cursorheight);
-	VW_MarkUpdateBlock ((cursorx+pansx)&SCREENXMASK,cursory+pansy,
-		( (cursorx+pansx)&SCREENXMASK)+cursorwidth*SCREENXDIV-1,
-		cursory+pansy+cursorheight-1);
+	if (!cursorhw)
+	{
+		VW_MemToScreen(cursorsave,cursorspot,cursorwidth,cursorheight);
+		VW_MarkUpdateBlock ((cursorx+pansx)&SCREENXMASK,cursory+pansy,
+			( (cursorx+pansx)&SCREENXMASK)+cursorwidth*SCREENXDIV-1,
+			cursory+pansy+cursorheight-1);
+	}
 }
 
 
@@ -756,6 +702,15 @@ void VWL_EraseCursor (void)
 void VW_ShowCursor (void)
 {
 	cursorvisible++;
+	if (cursorhw && cursorvisible)
+	{
+		SDL_Surface *mouseSurface = SDL_CreateRGBSurface(0, spritetable[cursornumber-STARTSPRITES].width*8, spritetable[cursornumber-STARTSPRITES].height, 32, 0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000);
+		SDL_LockSurface(mouseSurface);
+		VW_MaskedToRGBA(((spritetype*)(grsegs[cursornumber]))->data, mouseSurface->pixels, 0, 0, mouseSurface->pitch, spritetable[cursornumber-STARTSPRITES].width*8, cursorheight);
+		SDL_UnlockSurface(mouseSurface);
+		SDL_Cursor *mouseCursor = SDL_CreateColorCursor(mouseSurface, spritetable[cursornumber-STARTSPRITES].orgx, spritetable[cursornumber-STARTSPRITES].orgy);
+		SDL_SetCursor(mouseCursor);
+	}
 }
 
 
@@ -786,6 +741,8 @@ void VW_HideCursor (void)
 
 void VW_MoveCursor (int x, int y)
 {
+	if (cursorhw)
+		SDL_WarpMouseInWindow(window, x, y);
 	cursorx = x;
 	cursory = y;
 }
@@ -963,6 +920,8 @@ void VW_UpdateScreen (void)
 
 	if (cursorvisible>0)
 		VWL_EraseCursor();
+	VW_GL_UpdateGLBuffer();
+	VW_GL_Present();
 }
 
 
@@ -1019,7 +978,7 @@ void VWB_DrawPic (int x, int y, int chunknum)
 
 	source = grsegs[chunknum];
 	dest = ylookup[y]+x+bufferofs;
-	width = pictable[picnum].width;
+	width = pictable[picnum].width*8;
 	height = pictable[picnum].height;
 
 	if (VW_MarkUpdateBlock (x*SCREENXDIV,y,(x+width)*SCREENXDIV-1,y+height-1))
@@ -1041,11 +1000,11 @@ void VWB_DrawMPic(int x, int y, int chunknum)
 
 	source = grsegs[chunknum];
 	dest = ylookup[y]+x+bufferofs;
-	width = picmtable[picnum].width;
+	width = picmtable[picnum].width*8;
 	height = picmtable[picnum].height;
 
 	if (VW_MarkUpdateBlock (x*SCREENXDIV,y,(x+width)*SCREENXDIV-1,y+height-1))
-		VW_MaskBlock(source,0,dest,width,height,width*height);
+		VW_MaskBlock(source,0,dest,width,height,width*height/8);
 }
 #endif
 
