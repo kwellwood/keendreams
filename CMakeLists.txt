@@ -52,7 +52,7 @@ if (CROSS_X86)
 	set(CMAKE_LD_FLAGS "-m32")
 endif (CROSS_X86)
 
-
+set(CMAKE_C_FLAGS "-std=gnu99 -Wno-deprecated-writable-strings")
 
 set(KDREAMS_ID_SRCS
 id_heads.h
@@ -74,6 +74,8 @@ id_vw.h
 id_vw.c
 id_vw_a.c
 id_vw_ae.c
+id_vw_conv.c
+id_vw_gl.c
 )
 
 set(KDREAMS_KD_SRCS
@@ -113,6 +115,8 @@ ${KDREAMS_OPL_SRCS}
 )
 
 target_link_libraries(KDreams
+GLEW
+GL
 SDL2
 m
 )

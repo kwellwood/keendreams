@@ -106,7 +106,7 @@ char		*levelnames[21] =
 */
 
 // for asm scaning of map planes
-unsigned	mapx,mapy,mapxcount,mapycount,maptile,mapspot;
+uint16_t	mapx,mapy,mapxcount,mapycount,maptile,mapspot;
 
 int			plummet;
 
@@ -566,8 +566,8 @@ void HandleInfo (void)
 void ScanInfoPlane (void)
 {
 	unsigned	x,y,i,j;
-	int			tile;
-	unsigned	far	*start;
+	int16_t		tile;
+	uint16_t	*start;
 
 	InitObjArray();			// start spawning things with a clean slate
 
@@ -580,6 +580,10 @@ void ScanInfoPlane (void)
 			tile = *start++;
 			if (!tile)
 				continue;
+			maptile = tile;
+			mapx = x;
+			mapy = y;
+			HandleInfo();
 		}
 
 //
@@ -608,7 +612,7 @@ void ScanInfoPlane (void)
 
 void PatchWorldMap (void)
 {
-	unsigned	size,spot,info,foreground;
+	uint16_t size,spot,info,foreground;
 
 	size = mapwidth*mapheight;
 	spot = 0;
@@ -904,7 +908,7 @@ int	wallclip[8][16] = {			// the height of a given point in a tile
 
 void ClipToEnds (objtype *ob)
 {
-	unsigned	far *map,tile,facetile,info,wall;
+	uint16_t	far *map,tile,facetile,info,wall;
 	int	leftpix,rightpix,midtiles,toppix,bottompix;
 	int	x,y,clip,move,totalmove,maxmove,midxpix;
 
@@ -929,7 +933,7 @@ void ClipToEnds (objtype *ob)
 	}
 
 	maxmove = abs(midxmoved) - topmoved + 16;
-	map = (unsigned far *)mapsegs[1] +
+	map = (uint16_t *)mapsegs[1] +
 		mapbwidthtable[oldtiletop+1]/2 + ob->tilemidx;
 	for (y=oldtiletop+1 ; y>=ob->tiletop ; y--,map-=mapwidth)
 	{
@@ -962,7 +966,7 @@ void ClipToEnds (objtype *ob)
 void ClipToEastWalls (objtype *ob)
 {
 	int			y,move,top,bottom;
-	unsigned	far *map,tile,info,wall;
+	uint16_t	*map,tile,info,wall;
 
 	// clip to east walls if moving west
 
@@ -975,7 +979,7 @@ void ClipToEastWalls (objtype *ob)
 
 	for (y=top;y<=bottom;y++)
 	{
-		map = (unsigned far *)mapsegs[1] +
+		map = (uint16_t*)mapsegs[1] +
 			mapbwidthtable[y]/2 + ob->tileleft;
 
 		if (ob->hiteast = tinf[EASTWALL+*map])
@@ -991,7 +995,7 @@ void ClipToEastWalls (objtype *ob)
 void ClipToWestWalls (objtype *ob)
 {
 	int			y,move,top,bottom;
-	unsigned	far *map,tile,info,wall;
+	uint16_t	*map,tile,info,wall;
 
 	// check west walls if moving east
 
@@ -1004,7 +1008,7 @@ void ClipToWestWalls (objtype *ob)
 
 	for (y=top;y<=bottom;y++)
 	{
-		map = (unsigned far *)mapsegs[1] +
+		map = (uint16_t*)mapsegs[1] +
 			mapbwidthtable[y]/2 + ob->tileright;
 
 		if (ob->hitwest = tinf[WESTWALL+*map])
@@ -1034,7 +1038,7 @@ void ClipToWestWalls (objtype *ob)
 
 void ClipToWalls (objtype *ob)
 {
-	unsigned	x,y,tile;
+	uint16_t	x,y,tile;
 	spritetabletype	far *shape;
 	boolean	endfirst;
 

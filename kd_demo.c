@@ -362,7 +362,7 @@ MoveTitleTo(int offset)
 	delay = 1;
 	while (!done)
 	{
-		lasttime = TimeCount;
+		lasttime = SD_GetTimeCount();
 		move = delay * chunk;
 		if (chunk < 0)
 			done = originxglobal + move <= offset;
@@ -375,7 +375,7 @@ MoveTitleTo(int offset)
 		}
 		if (IN_IsUserInput())
 			return(true);
-		delay = TimeCount - lasttime;
+		delay = SD_GetTimeCount() - lasttime;
 	}
 	if (originxglobal != offset)
 	{
@@ -388,10 +388,10 @@ MoveTitleTo(int offset)
 static boolean
 Wait(longword time)
 {
-	time += TimeCount;
-	while ((TimeCount < time) && (!IN_IsUserInput()))
+	time += SD_GetTimeCount();
+	while ((SD_GetTimeCount() < time) && (!IN_IsUserInput()))
 	{
-		if (!(TimeCount % MINTICS))
+		if (!(SD_GetTimeCount() % MINTICS))
 			RF_Refresh();
 	}
 	return(IN_IsUserInput());
@@ -490,7 +490,8 @@ DemoLoop (void)
 				VW_SetScreen(0, 0);
 				MoveGfxDst(0, 200);
 				UnpackEGAShapeToScreen(&FileShape1, 0, 0);
-				VW_ScreenToScreen (64*200,0,40,200);
+				VW_ScreenToScreen (64*8*200,0,40*8,200);
+				VW_UpdateScreen();
 
 #if CREDITS
 				if (IN_UserInput(TickBase * 8, false))
@@ -503,14 +504,16 @@ DemoLoop (void)
 #if CREDITS
 				MoveGfxDst(0, 200);
 				UnpackEGAShapeToScreen(&FileShape2, 0, 0);
-				VW_ScreenToScreen (64*200,0,40,200);
+				VW_ScreenToScreen (64*8*200,0,40*8,200);
+				VW_UpdateScreen();
 
 				if (IN_UserInput(TickBase * 7, false))
 					break;
 #else
 				MoveGfxDst(0, 200);
 				UnpackEGAShapeToScreen(&FileShape1, 0, 0);
-				VW_ScreenToScreen (64*200,0,40,200);
+				VW_ScreenToScreen (64*8*200,0,40*8,200);
+				VW_UpdateScreen();
 
 				if (IN_UserInput(TickBase * 3, false))
 					break;
@@ -519,6 +522,7 @@ DemoLoop (void)
 				displayofs = 0;
 				VWB_Bar(0,0,320,200,FIRSTCOLOR);
 				US_DisplayHighScores(-1);
+				VW_UpdateScreen();
 
 				if (IN_UserInput(TickBase * 6, false))
 					break;
