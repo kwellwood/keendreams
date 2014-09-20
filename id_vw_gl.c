@@ -80,8 +80,8 @@ void VW_GL_UpdateLineWidth()
 {
 	glBindTexture(GL_TEXTURE_2D, screentexture);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, linewidth, 200, 0, GL_RED, GL_UNSIGNED_BYTE, 0);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 }
 
 void VW_GL_UpdateGLBuffer()

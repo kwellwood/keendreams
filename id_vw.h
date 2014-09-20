@@ -347,3 +347,27 @@ void VWB_Hlin (int x1, int x2, int y, int color);
 void VWB_Vlin (int y1, int y2, int x, int color);
 
 //===========================================================================
+
+//
+// Omnispeak conversion utility functions.
+//
+
+void VW_UnmaskedToPAL8(void *src,void *dest, int x, int y, int pitch, int w, int h);
+void VW_UnmaskedSubRectToPAL8(void *src,void *dest, int x, int y, int pitch, int w, int h, int planesize, int planepitch);
+void VW_MaskedToRGBA(void *src,void *dest, int x, int y, int pitch, int w, int h);
+void VW_MaskedToPAL8(void *src,void *dest, int x, int y, int pitch, int w, int h);
+void VW_MaskedBlitWPlaneSizeToPAL8(void *src,void *dest, int x, int y, int pitch, int w, int h, int planesize);
+void VW_1bppXorWithPAL8(void *src,void *dest, int x, int y, int pitch, int w, int h, int colour);
+
+//===========================================================================
+
+//
+// GL blitting
+//
+
+void VW_GL_Init();
+void VW_GL_UpdateLineWidth();
+void VW_GL_UpdateGLBuffer();
+void VW_GL_Present();
+
+//===========================================================================
