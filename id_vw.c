@@ -455,13 +455,13 @@ void VW_DrawSprite(int x, int y, unsigned chunknum)
 	unsigned	dest,shift;
 
 	spr = &spritetable[chunknum-STARTSPRITES];
-	block = (spritetype _seg *)grsegs[chunknum];
+	block = (spritetype *)grsegs[chunknum];
 
 	y+=spr->orgy>>G_P_SHIFT;
 	x+=spr->orgx>>G_P_SHIFT;
 
 #if GRMODE == EGAGR
-	shift = (x&7)/2;
+	shift = 0;// XXX (x&7)/2;
 #endif
 #if GRMODE == CGAGR
 	shift = 0;

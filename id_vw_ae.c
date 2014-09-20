@@ -9,7 +9,6 @@ void VW_Plot(unsigned x, unsigned y, unsigned color)
 {
 	uint8_t *screen = &vw_videomem[bufferofs];
 	screen[y*linewidth+x] = color;
-	VW_SetScreen(bufferofs,0);
 }
 
 void VW_Vlin(unsigned yl, unsigned yh, unsigned x, unsigned color)
@@ -20,7 +19,6 @@ void VW_Vlin(unsigned yl, unsigned yh, unsigned x, unsigned color)
 	{
 		screen[y*linewidth+x] = color;
 	}
-	VW_SetScreen(bufferofs,0);
 }
 
 void VW_DrawTile8(unsigned x, unsigned y, unsigned tile)
@@ -28,9 +26,6 @@ void VW_DrawTile8(unsigned x, unsigned y, unsigned tile)
 	uint8_t *src = ((uint8_t*)(grsegs[STARTTILE8])) + (tile * 8 * 4);
 	uint8_t *screen = &vw_videomem[bufferofs];
 	VW_UnmaskedSubRectToPAL8(src, screen, x, y, linewidth, 8, 8, 8, 1);
-	VW_SetScreen(bufferofs,0);
-	VW_GL_UpdateGLBuffer();
-	VW_GL_Present();
 	
 }
 
@@ -52,13 +47,11 @@ void VW_ScreenToScreen(unsigned source, unsigned dest, unsigned wide, unsigned h
 		dest += linewidth;
 		source += linewidth;
 	}
-	VW_SetScreen(bufferofs,0);
 }
 
 void VW_MemToScreen(memptr source, unsigned dest, unsigned wide, unsigned height)
 {
 	VW_UnmaskedToPAL8(source, &vw_videomem[dest], 0, 0, linewidth, wide, height);
-	VW_SetScreen(bufferofs,0);
 }
 
 void VW_ScreenToMem(unsigned source, memptr dest, unsigned wide, unsigned height)
@@ -68,6 +61,25 @@ void VW_ScreenToMem(unsigned source, memptr dest, unsigned wide, unsigned height
 
 void VWL_UpdateScreenBlocks()
 {
+	byte *cur = updateptr;
+	byte *end = cur + (UPDATEWIDE)*UPDATEHIGH+1;
+	do
+	{
+		unsigned updateoffset = (unsigned)(cur - updateptr);
+		unsigned copy = 16;
+		while(*cur++ == 1)
+			copy += 16;
+
+		uint8_t *dst = &vw_videomem[displayofs] + blockstarts[updateoffset];
+		uint8_t *src = &vw_videomem[bufferofs] + blockstarts[updateoffset];
+		for(unsigned int i = 0;i < 16;++i)
+		{
+			memcpy(dst, src, copy);
+			dst += linewidth;
+			src += linewidth;
+		}
+	}
+	while(cur < end);
 }
 
 void VW_SetScreen(unsigned crtc, unsigned pel)
