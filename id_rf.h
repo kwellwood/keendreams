@@ -104,7 +104,7 @@ extern	byte		*updateptr;				// current start of update window
 extern	byte		*baseupdateptr;
 #endif
 
-extern unsigned	blockstarts[UPDATEWIDE*UPDATEHIGH];
+extern uint16_t	blockstarts[UPDATEWIDE*UPDATEHIGH];
 extern unsigned	updatemapofs[UPDATEWIDE*UPDATEHIGH];
 extern unsigned	uwidthtable[UPDATEHIGH];		// lookup instead of multiple
 
