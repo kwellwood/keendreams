@@ -163,7 +163,7 @@ unsigned	masterofs;
 // RF_Startup
 //
 
-unsigned	blockstarts[UPDATEWIDE*UPDATEHIGH];
+uint16_t	blockstarts[UPDATEWIDE*UPDATEHIGH];
 unsigned	updatemapofs[UPDATEWIDE*UPDATEHIGH];
 
 unsigned	uwidthtable[PORTTILESHIGH];		// lookup instead of multiply
@@ -703,7 +703,7 @@ void RFL_RemoveAnimsOnY (unsigned y)
 void RFL_AnimateTiles (void)
 {
 	animtiletype *current;
-	unsigned	updateofs,tile,x,y;
+	uint16_t	updateofs,tile,x,y;
 	tiletype	*anim;
 
 //
