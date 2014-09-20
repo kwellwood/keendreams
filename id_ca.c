@@ -533,6 +533,17 @@ void CAL_SetupMapFile (void)
 	MM_GetPtr ((memptr)&tinf,length);
 	CA_FarRead(handle, tinf, length);
 	close(handle);
+#ifdef MAPSCOMPRESSED
+//
+// load mapdict.ext (huffman tree)
+//
+	if ((handle = open("MAPDICT."EXTENSION, O_RDONLY)) == -1)
+		Quit ("Can't open MAPDICT."EXTENSION"!");
+	length = CAL_filelength(handle);
+	assert(length == 1020);
+	CA_FarRead(handle, maphuffman, 255*sizeof(huffnode));
+	close(handle);
+#endif
 #else
 
 	maphuffman = (huffnode *)&mapdict;
@@ -1230,7 +1241,7 @@ void CA_CacheMap (int mapnum)
 		MM_GetPtr((memptr)&mapheaderseg[mapnum],sizeof(maptype));
 		lseek(maphandle,pos,SEEK_SET);
 
-#ifdef MAPHEADERLINKED
+#if defined(MAPHEADERLINKED) || defined(MAPSCOMPRESSED)
 //#if BUFFERSIZE < sizeof(maptype)
 //#error The general buffer size is too small!
 //#endif
@@ -1272,7 +1283,7 @@ void CA_CacheMap (int mapnum)
 		}
 
 		CA_FarRead(maphandle,(byte  *)source,compressed);
-#ifdef MAPHEADERLINKED
+#if defined(MAPHEADERLINKED) || defined(MAPSCOMPRESSED)
 		//
 		// unhuffman, then unRLEW
 		// The huffman'd chunk has a two byte expanded length first
@@ -1283,7 +1294,7 @@ void CA_CacheMap (int mapnum)
 		source++;
 		MM_GetPtr (&buffer2seg,expanded);
 		CAL_HuffExpand ((byte  *)source, buffer2seg,expanded,maphuffman);
-		CA_RLEWexpand (((unsigned  *)buffer2seg)+1,*dest,size,
+		CA_RLEWexpand (((uint16_t  *)buffer2seg)+1,*dest,size,
 		((mapfiletype  *)tinf)->RLEWtag);
 		MM_FreePtr (&buffer2seg);
 
