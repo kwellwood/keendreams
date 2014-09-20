@@ -58,7 +58,7 @@
 
 //===========================================================================
 
-typedef	struct
+typedef	struct __attribute__((__packed__))
 {
 	int32_t		planestart[3];
 	uint16_t	planelength[3];

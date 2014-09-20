@@ -163,7 +163,7 @@ unsigned	masterofs;
 // RF_Startup
 //
 
-uint16_t	blockstarts[UPDATEWIDE*UPDATEHIGH];
+unsigned	blockstarts[UPDATEWIDE*UPDATEHIGH];
 unsigned	updatemapofs[UPDATEWIDE*UPDATEHIGH];
 
 unsigned	uwidthtable[PORTTILESHIGH];		// lookup instead of multiply
@@ -254,7 +254,7 @@ static	char *ParmStrings[] = {"comp",""};
 void RF_Startup (void)
 {
 	int i,x,y;
-	uint16_t	*blockstart;
+	unsigned	*blockstart;
 
 	if (grmode == EGAGR)
 		for (i = 1;i < _argc;i++)
@@ -344,7 +344,8 @@ void RF_Shutdown (void)
 void RF_NewMap (void)
 {
 	int i,x,y;
-	uint16_t spot,*table;
+	uint16_t spot;
+	unsigned *table;
 
 	mapwidth = mapheaderseg[mapon]->width;
 	mapbyteswide = 2*mapwidth;
@@ -442,7 +443,7 @@ void RF_MarkTileGraphics (void)
 				for (i=0;i<numanimchains;i++)
 					if (allanims[i].current == tile)
 					{
-						*info = (uint16_t)(i & 0xFE00);
+						*info = (uint16_t)(i | 0xFE00);
 						goto nextback;
 					}
 
@@ -453,15 +454,13 @@ void RF_MarkTileGraphics (void)
 				allanims[i].current = tile;
 				allanims[i].count = tinf[SPEED+tile];
 
-				*info = (uint16_t)(i & 0xFE00);
+				*info = (uint16_t)(i | 0xFE00);
 				numanimchains++;
 
 				anims = 0;
 				next = tile+((signed char*)tinf)[ANIM+tile];
-				printf("tile %d",tile);
 				while (next != tile)
 				{
-					printf(" -> %d", next);
 					CA_MarkGrChunk(STARTTILE16+next);
 					next +=( (signed char*)tinf)[ANIM+next];
 					if (++anims > 20)
@@ -494,7 +493,7 @@ nextback:
 				for (i=0;i<numanimchains;i++)
 					if (allanims[i].current == tilehigh)
 					{
-						*info = (uint16_t)(i & 0xFE00);
+						*info = (uint16_t)(i | 0xFE00);
 						goto nextfront;
 					}
 
@@ -505,21 +504,18 @@ nextback:
 				allanims[i].current = tilehigh;
 				allanims[i].count = tinf[MSPEED+tile];
 
-				*info = (uint16_t)(i & 0xFE00);
+				*info = (uint16_t)(i | 0xFE00);
 				numanimchains++;
 
 				anims = 0;
 				next = tile+((signed char*)tinf)[MANIM+tile];
-				printf("tile %d",tile);
 				while (next != tile)
 				{
-					printf(" -> %d", next);
 					CA_MarkGrChunk(STARTTILE16M+next);
 					next += ((signed char*)(tinf))[MANIM+next];
 					if (++anims > 20)
 						Quit ("MarkTileGraphics: Unending animation!");
 				}
-				printf("\n");
 
 			}
 		}
@@ -599,7 +595,7 @@ void RFL_CheckForAnimTile (unsigned x, unsigned y)
 		anim->y = y;
 		anim->tile = tile;
 		anim->mapplane = map;
-		anim->chain = &allanims[(mapsegs[2][offset]) & 0x1FF];
+		anim->chain = &allanims[(mapsegs[2][offset]) & 0xFF];
 	}
 
 //
@@ -624,7 +620,7 @@ void RFL_CheckForAnimTile (unsigned x, unsigned y)
 		anim->y = y;
 		anim->tile = tile;
 		anim->mapplane = map;
-		anim->chain = &allanims[(mapsegs[2][offset]) & 0x1FF];
+		anim->chain = &allanims[(mapsegs[2][offset]) & 0xFF];
 	}
 
 }

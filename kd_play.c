@@ -908,14 +908,14 @@ int	wallclip[8][16] = {			// the height of a given point in a tile
 
 void ClipToEnds (objtype *ob)
 {
-	uint16_t	far *map,tile,facetile,info,wall;
+	uint16_t	*map,tile,facetile,info,wall;
 	int	leftpix,rightpix,midtiles,toppix,bottompix;
 	int	x,y,clip,move,totalmove,maxmove,midxpix;
 
 	midxpix = (ob->midx&0xf0) >> 4;
 
 	maxmove = -abs(midxmoved) - bottommoved - 16;
-	map = (unsigned far *)mapsegs[1] +
+	map = mapsegs[1] +
 		mapbwidthtable[oldtilebottom-1]/2 + ob->tilemidx;
 	for (y=oldtilebottom-1 ; y<=ob->tilebottom ; y++,map+=mapwidth)
 	{
@@ -933,7 +933,7 @@ void ClipToEnds (objtype *ob)
 	}
 
 	maxmove = abs(midxmoved) - topmoved + 16;
-	map = (uint16_t *)mapsegs[1] +
+	map = mapsegs[1] +
 		mapbwidthtable[oldtiletop+1]/2 + ob->tilemidx;
 	for (y=oldtiletop+1 ; y>=ob->tiletop ; y--,map-=mapwidth)
 	{

@@ -1019,7 +1019,7 @@ void CAL_CacheSprite (int chunk, char  *compressed)
 
 void CAL_ExpandGrChunk (int chunk, byte  *source)
 {
-	uint32_t pos,compressed,expanded;
+	int32_t pos,compressed,expanded;
 	int		next;
 	spritetabletype	*spr;
 
@@ -1088,7 +1088,7 @@ void CAL_ExpandGrChunk (int chunk, byte  *source)
 
 void CAL_ReadGrChunk (int chunk)
 {
-	uint32_t pos,compressed,expanded;
+	int32_t pos,compressed,expanded;
 	memptr	bigbufferseg;
 	byte	 *source;
 	int		next;
@@ -1141,7 +1141,7 @@ void CAL_ReadGrChunk (int chunk)
 
 void CA_CacheGrChunk (int chunk)
 {
-	uint32_t pos,compressed,expanded;
+	int32_t pos,compressed,expanded;
 	memptr	bigbufferseg;
 	byte	 *source;
 	int		next;

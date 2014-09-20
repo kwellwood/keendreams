@@ -146,7 +146,8 @@ void VW_MaskedToPAL8(void *src,void *dest, int x, int y, int pitch, int w, int h
 					((srcptr_g[plane_off] & plane_bit)?2:0) |
 					((srcptr_b[plane_off] & plane_bit)?1:0);
 
-			dstptr[(sy+y)*pitch+(sx+x)] = pixel & ((srcptr_a[plane_off] & plane_bit)?0xF0:0x00);
+			if(!(srcptr_a[plane_off] & plane_bit))
+				dstptr[(sy+y)*pitch+(sx+x)] = pixel;
 		}
 	}		
 }

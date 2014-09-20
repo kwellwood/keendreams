@@ -84,6 +84,7 @@ extern	long		lasttimecount;
 extern	unsigned	originxglobal,originyglobal;
 extern	unsigned	originxtile,originytile;
 extern	unsigned	originxscreen,originyscreen;
+extern	unsigned	originmap;
 
 extern	unsigned	mapwidth,mapheight,mapbyteswide,mapwordswide
 					,mapbytesextra,mapwordsextra;
@@ -99,12 +100,13 @@ extern	unsigned	masterofs;
 //
 
 extern	byte		*updateptr;				// current start of update window
+extern	byte		*updatestart[2];
 
 #if GRMODE == CGAGR
 extern	byte		*baseupdateptr;
 #endif
 
-extern uint16_t	blockstarts[UPDATEWIDE*UPDATEHIGH];
+extern unsigned blockstarts[UPDATEWIDE*UPDATEHIGH];
 extern unsigned	updatemapofs[UPDATEWIDE*UPDATEHIGH];
 extern unsigned	uwidthtable[UPDATEHIGH];		// lookup instead of multiple
 
