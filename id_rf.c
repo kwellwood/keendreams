@@ -1227,7 +1227,7 @@ void RF_PlaceSprite (void **user,unsigned globalx,unsigned globaly,
 {
 	spritelisttype	register *sprite,*next;
 	spritetabletype far *spr;
-	spritetype _seg	*block;
+	spritetype	*block;
 	unsigned	shift,pixx;
 
 	if (!spritenumber)
@@ -1294,11 +1294,11 @@ linknewspot:
 	globalx+=spr->orgx;
 
 	pixx = globalx >> G_SY_SHIFT;
-	shift = (pixx&7)/2;
+	shift = 0;//(pixx&7)/2;
 
 	sprite->screenx = pixx >> (G_EGASX_SHIFT-G_SY_SHIFT);
 	sprite->screeny = globaly >> G_SY_SHIFT;
-	sprite->width = block->width[shift];
+	sprite->width = block->width[shift] * 8;
 	sprite->height = spr->height;
 	sprite->grseg = spritenumber;
 	sprite->sourceofs = block->sourceoffset[shift];

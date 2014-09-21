@@ -90,8 +90,12 @@ void VW_GL_UpdateGLBuffer()
 	if (lastdrawnbuffer + (linewidth * 200) >= VW_VIDEOMEM_SIZE)
 	{
 		unsigned lineshalf = (VW_VIDEOMEM_SIZE - lastdrawnbuffer) / linewidth;
+		unsigned pixhalf = (VW_VIDEOMEM_SIZE - lastdrawnbuffer) % linewidth;
+		printf("lineshalf = %d (ldb = %d, vms = %d)\n", lineshalf, lastdrawnbuffer, VW_VIDEOMEM_SIZE);
 		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, linewidth, lineshalf, GL_RED, GL_UNSIGNED_BYTE, &vw_videomem[lastdrawnbuffer]);
-		glTexSubImage2D(GL_TEXTURE_2D, 0, lineshalf, 0, linewidth, 200 - lineshalf, GL_RED, GL_UNSIGNED_BYTE, &vw_videomem[0]);
+		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, lineshalf, pixhalf, 1, GL_RED, GL_UNSIGNED_BYTE, &vw_videomem[lineshalf * linewidth]);
+		glTexSubImage2D(GL_TEXTURE_2D, 0, pixhalf, lineshalf, linewidth - pixhalf, 1, GL_RED, GL_UNSIGNED_BYTE, &vw_videomem[0]);
+		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, lineshalf - 1, linewidth, 200 - lineshalf - 1, GL_RED, GL_UNSIGNED_BYTE, &vw_videomem[pixhalf]);
 	}
 	else
 	{
