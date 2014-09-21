@@ -896,7 +896,7 @@ void	CheckEnterLevel (objtype *ob)
 	for (y=ob->tiletop;y<=ob->tilebottom;y++)
 		for (x=ob->tileleft;x<=ob->tileright;x++)
 		{
-			tile = *((unsigned _seg *)mapsegs[2]+mapbwidthtable[y]/2+x);
+			tile = *((uint16_t *)mapsegs[2]+mapbwidthtable[y]/2+x);
 			if (tile >= 3 && tile <=18)
 			{
 			//

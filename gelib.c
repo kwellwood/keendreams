@@ -59,7 +59,6 @@ int UnpackEGAShapeToScreen(struct Shape *SHP,int startx,int starty)
 		for (loop=1; loop<SHP->bmHdr.d; loop++)
 			Dst[loop] = Dst[0];
 
-		printf("depth = %d\n", SHP->bmHdr.d);
 		memset(Dst[0], 0, SHP->bmHdr.w);
 
 		for (Plane=0; Plane<SHP->bmHdr.d; Plane++)

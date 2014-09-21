@@ -8,7 +8,7 @@ uint8_t vw_videomem[VW_VIDEOMEM_SIZE];
 void VW_Plot(unsigned x, unsigned y, unsigned color)
 {
 	uint8_t *screen = &vw_videomem[bufferofs];
-	screen[y*linewidth+x] = color;
+	screen[(y*linewidth+x) % VW_VIDEOMEM_SIZE] = color;
 }
 
 void VW_Vlin(unsigned yl, unsigned yh, unsigned x, unsigned color)
@@ -17,7 +17,7 @@ void VW_Vlin(unsigned yl, unsigned yh, unsigned x, unsigned color)
 	unsigned y;
 	for(y = yl; y < yh; ++y)
 	{
-		screen[y*linewidth+x] = color;
+		screen[(y*linewidth+x) % VW_VIDEOMEM_SIZE] = color;
 	}
 }
 
@@ -41,8 +41,11 @@ void VW_MaskBlock(memptr segment, unsigned ofs, unsigned dest, unsigned wide, un
 void VW_ScreenToScreen(unsigned source, unsigned dest, unsigned wide, unsigned height)
 {
 	int y;
+	if (source == dest) return;
 	for (y = 0; y < height; y++)
 	{
+		dest = (dest) % VW_VIDEOMEM_SIZE;
+		source = (source) % VW_VIDEOMEM_SIZE;
 		memmove(&vw_videomem[dest], &vw_videomem[source], wide);
 		dest += linewidth;
 		source += linewidth;
@@ -70,14 +73,9 @@ void VWL_UpdateScreenBlocks()
 		while(*cur++ == 1)
 			copy += 16;
 
-		uint8_t *dst = &vw_videomem[displayofs] + blockstarts[updateoffset];
-		uint8_t *src = &vw_videomem[bufferofs] + blockstarts[updateoffset];
-		for(unsigned int i = 0;i < 16;++i)
-		{
-			memcpy(dst, src, copy);
-			dst += linewidth;
-			src += linewidth;
-		}
+		unsigned dst = displayofs + blockstarts[updateoffset];
+		unsigned src = bufferofs + blockstarts[updateoffset];
+		VW_ScreenToScreen(src, dst, copy, 16);
 	}
 	while(cur < end);
 }
@@ -112,7 +110,7 @@ void ShiftPropChar()
 void VW_DrawPropString(char *str)
 {
 	int oldpx = px;
-	uint8_t *screen = &vw_videomem[bufferofs];
+	uint8_t *screen = &vw_videomem[bufferofs + panadjust];
 	fontstruct *font = (fontstruct*)(grsegs[STARTFONT]);
 	while (*str)
 	{

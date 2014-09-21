@@ -64,14 +64,9 @@ void RFL_UpdateTiles (void)
 		while (cur < end && *cur++ == 1)
 			copy += 16;
 
-		uint8_t *dst = &vw_videomem[bufferofs] + blockstarts[updateoffset];
-		uint8_t *src = &vw_videomem[masterofs] + blockstarts[updateoffset];
-		for(unsigned int i = 0;i < 16;++i)
-		{
-			memcpy(dst, src, copy);
-			dst += linewidth;
-			src += linewidth;
-		}
+		unsigned dst = bufferofs + blockstarts[updateoffset];
+		unsigned src = masterofs + blockstarts[updateoffset];
+		VW_ScreenToScreen(src, dst, copy, 16);
 	}
 	while(cur < end);
 }
