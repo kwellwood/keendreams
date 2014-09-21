@@ -82,7 +82,7 @@ void VWL_UpdateScreenBlocks()
 
 void VW_SetScreen(unsigned crtc, unsigned pel)
 {
-	lastdrawnbuffer = crtc;
+	lastdrawnbuffer = (crtc % VW_VIDEOMEM_SIZE);
 	lastdrawnpan = pel;
 	VW_GL_UpdateGLBuffer();
 	VW_GL_Present();

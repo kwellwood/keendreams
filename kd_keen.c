@@ -1349,7 +1349,7 @@ void SpawnKeen (int tilex, int tiley, int dir)
 boolean	CheckGrabPole (objtype *ob)
 {
 	int	x;
-	unsigned far *map;
+	uint16_t *map;
 
 //
 // kludgy bit to not let you grab a pole the instant you jump off it
@@ -1360,10 +1360,10 @@ boolean	CheckGrabPole (objtype *ob)
 		return false;
 
 	if (c.yaxis == -1)
-		map = (unsigned _seg *)mapsegs[1]+
+		map = (uint16_t *)mapsegs[1]+
 			mapbwidthtable[(ob->top+6*PIXGLOBAL)/TILEGLOBAL]/2;
 	else
-		map = (unsigned _seg *)mapsegs[1]+
+		map = (uint16_t *)mapsegs[1]+
 			mapbwidthtable[ob->tilebottom]/2;
 
 	x = (ob->left + (ob->right - ob->left)/2) >>G_T_SHIFT;
@@ -1604,7 +1604,7 @@ void KeenDieThink (objtype *ob)
 
 void KeenDuckThink (objtype *ob)
 {
-	unsigned far *map, tile;
+	uint16_t *map, tile;
 	int midtile,bottomtile,move;
 
 	if (c.yaxis != 1)
@@ -1626,7 +1626,7 @@ void KeenDuckThink (objtype *ob)
 
 		midtile = (ob->tileleft + ob->tileright) >> 1;
 		bottomtile = ob->tilebottom;
-		map = (unsigned far *)mapsegs[1] + mapbwidthtable[bottomtile]/2
+		map = (uint16_t *)mapsegs[1] + mapbwidthtable[bottomtile]/2
 			+ midtile;
 		tile = *map;
 		if (tinf[WESTWALL+tile] || tinf[EASTWALL+tile]
@@ -1869,7 +1869,7 @@ void	PoleActions (objtype *ob)
 
 void	KeenPoleThink		(objtype *ob)
 {
-	unsigned far *map, tile;
+	uint16_t *map, tile;
 
 	switch (c.yaxis)
 	{
@@ -1919,9 +1919,9 @@ void	KeenPoleThink		(objtype *ob)
 
 void	KeenClimbThink		(objtype *ob)
 {
-	unsigned far *map;
+	uint16_t *map;
 
-	map = (unsigned _seg *)mapsegs[1]+mapbwidthtable[ob->tiletop]/2+ob->temp4;
+	map = (uint16_t *)mapsegs[1]+mapbwidthtable[ob->tiletop]/2+ob->temp4;
 
 	if ((tinf[INTILE+*map]&0x7f) != 1)
 	{
@@ -1958,9 +1958,9 @@ void	KeenClimbThink		(objtype *ob)
 
 void	KeenDropThink		(objtype *ob)
 {
-	unsigned far *map;
+	uint16_t *map;
 
-	map = (unsigned _seg *)mapsegs[1]+mapbwidthtable[ob->tilebottom]/2+ob->temp4;
+	map = (uint16_t *)mapsegs[1]+mapbwidthtable[ob->tilebottom]/2+ob->temp4;
 
 	if ((tinf[INTILE+*map]&0x7f) != 1)
 	{
@@ -2376,7 +2376,7 @@ placeit:
 void	KeenAirReact (objtype *ob)
 {
 	int x,y;
-	unsigned far *map,mapextra;
+	uint16_t *map,mapextra;
 
 	if (ob->hiteast || ob->hitwest)
 		ob->xspeed = 0;
@@ -2441,7 +2441,7 @@ checknorth:
 
 void	KeenSlideReact (objtype *ob)
 {
-	unsigned far *map;
+	uint16_t *map;
 
 	if (ob->hitnorth)			// friction slow down
 	{
