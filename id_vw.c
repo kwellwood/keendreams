@@ -498,9 +498,9 @@ void VW_Hlin(unsigned xl, unsigned xh, unsigned y, unsigned color)
 {
 	uint8_t *screen = &vw_videomem[bufferofs];
 	unsigned x;
-	for(x = xl; x < xh; ++x)
+	for(x = xl; x <= xh; ++x)
 	{
-		screen[y*linewidth+x] = color;
+		screen[(y*linewidth+x)%VW_VIDEOMEM_SIZE] = color;
 	}
 	
 }
@@ -930,7 +930,7 @@ void VWB_DrawTile8 (int x, int y, int tile)
 {
 	x+=pansx;
 	y+=pansy;
-	if (VW_MarkUpdateBlock (x&SCREENXMASK,y,(x&SCREENXMASK)+7,y+7))
+	if (VW_MarkUpdateBlock (x,y,(x)+7,y+7))
 		VW_DrawTile8 (x/SCREENXDIV,y,tile);
 }
 
@@ -941,7 +941,7 @@ void VWB_DrawTile8M (int x, int y, int tile)
 	x+=pansx;
 	y+=pansy;
 	xb = x/SCREENXDIV; 			// use intermediate because VW_DT8M is macro
-	if (VW_MarkUpdateBlock (x&SCREENXMASK,y,(x&SCREENXMASK)+7,y+7))
+	if (VW_MarkUpdateBlock (x,y,(x)+7,y+7))
 		VW_DrawTile8M (xb,y,tile);
 }
 
@@ -949,7 +949,7 @@ void VWB_DrawTile16 (int x, int y, int tile)
 {
 	x+=pansx;
 	y+=pansy;
-	if (VW_MarkUpdateBlock (x&SCREENXMASK,y,(x&SCREENXMASK)+15,y+15))
+	if (VW_MarkUpdateBlock (x,y,(x)+15,y+15))
 		VW_DrawTile16 (x/SCREENXDIV,y,tile);
 }
 
@@ -960,7 +960,7 @@ void VWB_DrawTile16M (int x, int y, int tile)
 	x+=pansx;
 	y+=pansy;
 	xb = x/SCREENXDIV;		// use intermediate because VW_DT16M is macro
-	if (VW_MarkUpdateBlock (x&SCREENXMASK,y,(x&SCREENXMASK)+15,y+15))
+	if (VW_MarkUpdateBlock (x,y,(x)+15,y+15))
 		VW_DrawTile16M (xb,y,tile);
 }
 
@@ -1060,7 +1060,7 @@ void VWB_DrawSprite(int x, int y, int chunknum)
 
 
 #if GRMODE == EGAGR
-	shift = (x&7)/2;
+	shift = 0;//(x&7)/2;
 #endif
 #if GRMODE == CGAGR
 	shift = 0;
@@ -1072,10 +1072,10 @@ void VWB_DrawSprite(int x, int y, int chunknum)
 	else
 		dest += (x+1)/SCREENXDIV;
 
-	width = block->width[shift];
+	width = block->width[shift] * 8;
 	height = spr->height;
 
-	if (VW_MarkUpdateBlock (x&SCREENXMASK,y,(x&SCREENXMASK)+width*SCREENXDIV-1
+	if (VW_MarkUpdateBlock (x,y,(x)+width-1
 		,y+height-1))
 		VW_MaskBlock (block,block->sourceoffset[shift],dest,
 			width,height,block->planesize[shift]);

@@ -1110,8 +1110,9 @@ void RF_Scroll (int x, int y)
 	screenmove = deltay*16*SCREENWIDTH + deltax*TILEWIDTH;
 	for (i=0;i<3;i++)
 	{
-		screenstart[i]+= screenmove;
-		if (compatability && screenstart[i] > (0x10000l-SCREENSPACE) )
+		screenstart[i]+= screenmove + VW_VIDEOMEM_SIZE;
+		screenstart[i] = screenstart[i] % VW_VIDEOMEM_SIZE;
+		if (compatability && screenstart[i] > (VW_VIDEOMEM_SIZE-SCREENSPACE) )
 		{
 			//
 			// move the screen to the opposite end of the buffer
@@ -1704,6 +1705,7 @@ asm	mov	[WORD PTR es:di],UPDATETERMINATE
 	do
 	{
 		newtime = SD_GetTimeCount();
+		IN_PumpEvents();
 		tics = newtime-lasttimecount;
 	} while (tics<MINTICS);
 	lasttimecount = newtime;

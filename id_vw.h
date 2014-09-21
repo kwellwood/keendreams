@@ -186,7 +186,7 @@ extern	unsigned	displayofs;		// origin of port on visable screen
 extern	unsigned	panx,pany;		// panning adjustments inside port in pixels
 extern	unsigned	pansx,pansy;
 extern	unsigned	panadjust;		// panx/pany adjusted by screen resolution
-#define VW_VIDEOMEM_SIZE 512*240*10
+#define VW_VIDEOMEM_SIZE (512*240*3)
 extern uint8_t vw_videomem[VW_VIDEOMEM_SIZE];
 
 extern	unsigned	screenseg;		// normally 0xa000 or buffer segment
