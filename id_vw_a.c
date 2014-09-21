@@ -181,7 +181,7 @@ void VW_WaitVBL(int vblanks)
 
 cardtype VW_VideoID()
 {
-	return VGAgr;
+	return VGAcard;
 }
 
 boolean FindPS2()
