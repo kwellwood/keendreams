@@ -24,7 +24,7 @@ void RFL_NewTile (unsigned updateoffset)
 {
 	updatestart[1][updateoffset] = updatestart[0][updateoffset] = 1;
 	unsigned tileofs = originmap + updatemapofs[updateoffset];
-	uint8_t *dst = &vw_videomem[bufferofs] + blockstarts[updateoffset];
+	uint8_t *dst = &vw_videomem[masterofs] + blockstarts[updateoffset];
 
 	uint16_t fg = mapsegs[1][tileofs/2];
 	uint16_t bg = mapsegs[0][tileofs/2];
@@ -54,16 +54,18 @@ void RFL_MaskForegroundTiles (void)
 void RFL_UpdateTiles (void)
 {
 	byte *cur = updateptr;
-	byte *end = cur + (TILESWIDE+1)*TILESHIGH+2;
+	byte *end = cur + (TILESWIDE+1)*TILESHIGH;
 	do
 	{
 		unsigned updateoffset = (unsigned)(cur - updateptr);
 		unsigned copy = 16;
-		while(*cur++ == 1)
+		if (cur >= end) break;
+		if (*cur++ != 1) continue;
+		while (cur < end && *cur++ == 1)
 			copy += 16;
 
-		uint8_t *dst = &vw_videomem[masterofs] + blockstarts[updateoffset];
-		uint8_t *src = &vw_videomem[bufferofs] + blockstarts[updateoffset];
+		uint8_t *dst = &vw_videomem[bufferofs] + blockstarts[updateoffset];
+		uint8_t *src = &vw_videomem[masterofs] + blockstarts[updateoffset];
 		for(unsigned int i = 0;i < 16;++i)
 		{
 			memcpy(dst, src, copy);

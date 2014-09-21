@@ -47,7 +47,7 @@ updated
 #define	SCREENTILESHIGH	13
 
 #define	SCREENSPACE		(SCREENWIDTH*240)
-#define FREEEGAMEM		(0x10000l-3l*SCREENSPACE)
+#define FREEEGAMEM		(VW_VIDEOMEM_SIZE-3l*SCREENSPACE)
 
 //
 // the update array must have enough space for two screens that can float
