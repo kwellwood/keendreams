@@ -3,7 +3,44 @@
 #include "id_heads.h"
 #include "GL/glew.h"
 
-uint8_t vw_videomem[VW_VIDEOMEM_SIZE];
+uint8_t *vw_videomem;
+
+#include <sys/mman.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+void VWL_SetupVideoMemory()
+{
+#ifdef VW_MMAP_RINGBUFFER
+	// We support video memory wrapping by getting the OS to set up page tables
+	// for us. Needs VW_VIDEOMEM_SIZE to be a multiple of the page size.
+	// TODO: Win32 version.
+	char vmpath[] = "/dev/shm/kdreams-vmem-XXXXXX";
+	int fd = mkstemp(vmpath);
+	if (fd < 0) Quit("Couldn't create emulated video memory mapping.");
+	
+	if (unlink(vmpath))
+		Quit("Couldn't delete backing file for emulated video memory.");
+	
+	if (ftruncate(fd, VW_VIDEOMEM_SIZE))
+		Quit("Couldn't size file for emulated video memory."); 
+	
+	// Try to reserve 2*VW_VIDEOMEM_SIZE bytes of address space.
+	vw_videomem = mmap(NULL, VW_VIDEOMEM_SIZE * 2, PROT_NONE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
+	if (vw_videomem == MAP_FAILED)
+		Quit("Couldn't reserve address space for emulated video memory.");
+	
+	// Now map two copies of videomem so that we can wrap around.
+	if (mmap(vw_videomem, VW_VIDEOMEM_SIZE, PROT_READ | PROT_WRITE, MAP_FIXED | MAP_SHARED, fd, 0) == MAP_FAILED)
+		Quit("Couldn't map emulated video memory.");
+	if (mmap(vw_videomem + VW_VIDEOMEM_SIZE, VW_VIDEOMEM_SIZE, PROT_READ | PROT_WRITE, MAP_FIXED | MAP_SHARED, fd, 0) == MAP_FAILED)
+		Quit("Couldn't map emulated video memory.");
+	
+	close(fd);
+#else
+	vw_videomem = malloc(VW_VIDEOMEM_SIZE);
+#endif
+}
 
 void VW_Plot(unsigned x, unsigned y, unsigned color)
 {

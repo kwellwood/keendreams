@@ -87,6 +87,7 @@ void VW_GL_UpdateLineWidth()
 void VW_GL_UpdateGLBuffer()
 {
 	glBindTexture(GL_TEXTURE_2D, screentexture);
+#ifndef VW_MMAP_RINGBUFFER
 	if (lastdrawnbuffer + (linewidth * 200) >= VW_VIDEOMEM_SIZE)
 	{
 		unsigned lineshalf = (VW_VIDEOMEM_SIZE - lastdrawnbuffer) / linewidth;
@@ -98,6 +99,7 @@ void VW_GL_UpdateGLBuffer()
 		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, lineshalf - 1, linewidth, 200 - lineshalf - 1, GL_RED, GL_UNSIGNED_BYTE, &vw_videomem[pixhalf]);
 	}
 	else
+#endif
 	{
 		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, linewidth, 200, GL_RED, GL_UNSIGNED_BYTE, &vw_videomem[lastdrawnbuffer]);
 	}

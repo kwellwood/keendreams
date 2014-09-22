@@ -542,10 +542,10 @@ static void SDL_ALPlaySound_Low(AdLibSound *sound)
 	alBlock = ((sound->block & 7) << 2) | 0x20;
 	inst = &sound->inst;
 
-	if (!(inst->mSus | inst->cSus))
+/*	if (!(inst->mSus | inst->cSus))
 	{
 		Quit("SDL_ALPlaySound() - Bad instrument");
-	}
+	}*/
 
 	// SDL_AlSetFXInst(&alZeroInst);	// DEBUG
 	SDL_AlSetFXInst(inst);

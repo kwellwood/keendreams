@@ -148,6 +148,7 @@ Quit ("Improper video card!  If you really have a CGA card that I am not \n"
 
 	cursorvisible = 0;
 	
+	VWL_SetupVideoMemory();
 	window = SDL_CreateWindow("Keen Dreams", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 320, 200, SDL_WINDOW_OPENGL);
 	glcontext = SDL_GL_CreateContext(window);
 	glewInit();
