@@ -34,6 +34,9 @@
 
 //===========================================================================
 
+#define VW_MMAP_RINGBUFFER
+
+
 #define	G_P_SHIFT		4	// global >> ?? = pixels
 
 #if GRMODE == EGAGR
@@ -186,8 +189,8 @@ extern	unsigned	displayofs;		// origin of port on visable screen
 extern	unsigned	panx,pany;		// panning adjustments inside port in pixels
 extern	unsigned	pansx,pansy;
 extern	unsigned	panadjust;		// panx/pany adjusted by screen resolution
-#define VW_VIDEOMEM_SIZE (512*240*3)
-extern uint8_t vw_videomem[VW_VIDEOMEM_SIZE];
+#define VW_VIDEOMEM_SIZE (4096 * 128)		// This must be a multiple of PAGE_SIZE
+extern uint8_t *vw_videomem;
 
 extern	unsigned	screenseg;		// normally 0xa000 or buffer segment
 
@@ -345,6 +348,14 @@ void VWB_DrawSprite (int x, int y, int chunknum);
 void VWB_Plot (int x, int y, int color);
 void VWB_Hlin (int x1, int x2, int y, int color);
 void VWB_Vlin (int y1, int y2, int x, int color);
+
+//===========================================================================
+
+//
+// Video memory mapping functions
+//
+
+void VWL_SetupVideoMemory();
 
 //===========================================================================
 
