@@ -45,7 +45,7 @@ typedef	enum	{
 					smm_Off,smm_AdLib
 				}	SMMode;
 
-typedef	struct
+typedef	struct __attribute__((__packed__))
 		{
 			longword	length;
 			word		priority;
@@ -58,7 +58,7 @@ typedef	struct
 
 #define	pcSpkBits	3
 
-typedef	struct
+typedef	struct __attribute__((__packed__))
 		{
 			SoundCommon	common;
 			byte		data[1];
@@ -72,7 +72,7 @@ typedef	struct
 #define	sbWriteStat	0x20c
 #define	sbDataAvail	0x20e
 
-typedef	struct
+typedef	struct __attribute__((__packed__))
 		{
 			SoundCommon	common;
 			word		hertz;
@@ -95,7 +95,7 @@ typedef	struct
 // Global stuff
 #define	alEffects	0xbd
 
-typedef	struct
+typedef	struct __attribute__((__packed__))
 		{
 			byte	mChar,cChar,
 					mScale,cScale,
@@ -106,7 +106,7 @@ typedef	struct
 					unused[5];
 		} Instrument;
 
-typedef	struct
+typedef	struct __attribute__((__packed__))
 		{
 			SoundCommon	common;
 			Instrument	inst;
@@ -130,14 +130,14 @@ typedef	struct
 #define	sev_PercOff		7	// Turns a percussive note off
 #define	sev_SeqEnd		-1	// Terminates a sequence
 
-typedef	struct
+typedef	struct __attribute__((__packed__))
 		{
 			word	flags,
 					count,
 					offsets[1];
 		} MusicGroup;
 
-typedef	struct
+typedef	struct __attribute__((__packed))
 		{
 			/* This part needs to be set up by the user */
 			word        mood,*moods[sqMaxMoods];
