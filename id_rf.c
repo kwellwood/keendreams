@@ -60,7 +60,7 @@ updated
 #define	UPDATESPARESIZE		(UPDATEWIDE*2+4)
 #define UPDATESIZE			(UPDATESCREENSIZE+2*UPDATESPARESIZE)
 
-#define G_EGASX_SHIFT	7	// global >> ?? = screen x
+#define G_EGASX_SHIFT	0	// global >> ?? = screen x
 #define G_CGASX_SHIFT	6	// global >> ?? = screen x
 #define G_SY_SHIFT		4	// global >> ?? = screen y
 
@@ -84,7 +84,7 @@ unsigned	SX_T_SHIFT;		// screen x >> ?? = tile EGA = 1, CGA = 2;
 =============================================================================
 */
 
-typedef	struct spriteliststruct
+typedef	struct __attribute__((__packed__)) spriteliststruct
 {
 	int16_t 		screenx,screeny;
 	int16_t			width,height;
@@ -97,10 +97,10 @@ typedef	struct spriteliststruct
 } spritelisttype;
 
 
-typedef struct
+typedef struct __attribute__((__packed__))
 {
-	int			screenx,screeny;
-	int			width,height;
+	int16_t			screenx,screeny;
+	int16_t			width,height;
 } eraseblocktype;
 
 
@@ -1296,7 +1296,7 @@ linknewspot:
 	pixx = globalx >> G_SY_SHIFT;
 	shift = 0;//(pixx&7)/2;
 
-	sprite->screenx = pixx >> (G_EGASX_SHIFT-G_SY_SHIFT);
+	sprite->screenx = globalx >> (G_SY_SHIFT);
 	sprite->screeny = globaly >> G_SY_SHIFT;
 	sprite->width = block->width[shift] * 8;
 	sprite->height = spr->height;
