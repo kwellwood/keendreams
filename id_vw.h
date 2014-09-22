@@ -146,7 +146,7 @@
 typedef enum {NOcard,MDAcard,CGAcard,EGAcard,MCGAcard,VGAcard,
 		  HGCcard=0x80,HGCPcard,HICcard} cardtype;
 
-typedef struct
+typedef struct __attribute__((__packed__))
 {
   int16_t	width,
 		height,
@@ -155,7 +155,7 @@ typedef struct
 		shifts;
 } spritetabletype;
 
-typedef	struct
+typedef	struct __attribute__((__packed__))
 {
 	uint16_t	sourceoffset[MAXSHIFTS];
 	uint16_t	planesize[MAXSHIFTS];
@@ -163,13 +163,13 @@ typedef	struct
 	byte		data[];
 } spritetype;		// the memptr for each sprite points to this
 
-typedef struct
+typedef struct __attribute__((__packed__))
 {
 	int16_t width,height;
 } pictabletype;
 
 
-typedef struct
+typedef struct __attribute__((__packed__))
 {
 	int16_t height;
 	int16_t location[256];

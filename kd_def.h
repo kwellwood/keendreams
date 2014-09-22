@@ -117,7 +117,7 @@ typedef struct	objstruct
 	int16_t			ticcount,ticadjust;
 	statetype	*state;
 
-	uint16_t	shapenum;
+	int16_t		shapenum;
 
 	uint16_t	left,top,right,bottom;	// hit rectangle
 	uint16_t	midx;
