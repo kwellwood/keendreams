@@ -327,6 +327,7 @@ void VW_ShowCursor (void);
 void VW_HideCursor (void);
 void VW_MoveCursor (int x, int y);
 void VW_SetCursor (int spritenum);
+extern boolean	cursorhw;			// Are we using a hardware cursor?
 
 //
 // mode independant routines

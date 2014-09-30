@@ -703,14 +703,9 @@ void VWL_EraseCursor (void)
 void VW_ShowCursor (void)
 {
 	cursorvisible++;
-	if (cursorhw && cursorvisible)
+	if (cursorhw)
 	{
-		SDL_Surface *mouseSurface = SDL_CreateRGBSurface(0, spritetable[cursornumber-STARTSPRITES].width*8, spritetable[cursornumber-STARTSPRITES].height, 32, 0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000);
-		SDL_LockSurface(mouseSurface);
-		VW_MaskedToRGBA(((spritetype*)(grsegs[cursornumber]))->data, mouseSurface->pixels, 0, 0, mouseSurface->pitch, spritetable[cursornumber-STARTSPRITES].width*8, cursorheight);
-		SDL_UnlockSurface(mouseSurface);
-		SDL_Cursor *mouseCursor = SDL_CreateColorCursor(mouseSurface, spritetable[cursornumber-STARTSPRITES].orgx, spritetable[cursornumber-STARTSPRITES].orgy);
-		SDL_SetCursor(mouseCursor);
+		SDL_ShowCursor(cursorvisible);
 	}
 }
 
@@ -728,6 +723,10 @@ void VW_ShowCursor (void)
 void VW_HideCursor (void)
 {
 	cursorvisible--;
+	if (cursorhw)
+	{
+		SDL_ShowCursor(cursorvisible);
+	}
 }
 
 //==========================================================================
@@ -765,7 +764,8 @@ void VW_SetCursor (int spritenum)
 	if (cursornumber)
 	{
 		MM_SetLock (&grsegs[cursornumber],false);
-		MM_FreePtr (&cursorsave);
+		if (!cursorhw)
+			MM_FreePtr (&cursorsave);
 	}
 
 	cursornumber = spritenum;
@@ -775,8 +775,17 @@ void VW_SetCursor (int spritenum)
 
 	cursorwidth = spritetable[spritenum-STARTSPRITES].width+1;
 	cursorheight = spritetable[spritenum-STARTSPRITES].height;
-
-	MM_GetPtr (&cursorsave,cursorwidth*cursorheight*5);
+	if (cursorhw)
+	{
+		SDL_Surface *mouseSurface = SDL_CreateRGBSurface(0, spritetable[cursornumber-STARTSPRITES].width*8, spritetable[cursornumber-STARTSPRITES].height, 32, 0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000);
+		SDL_LockSurface(mouseSurface);
+		VW_MaskedToRGBA(((spritetype*)(grsegs[cursornumber]))->data, mouseSurface->pixels, 0, 0, mouseSurface->pitch, spritetable[cursornumber-STARTSPRITES].width*8, cursorheight);
+		SDL_UnlockSurface(mouseSurface);
+		SDL_Cursor *mouseCursor = SDL_CreateColorCursor(mouseSurface, spritetable[cursornumber-STARTSPRITES].orgx, spritetable[cursornumber-STARTSPRITES].orgy);
+		SDL_SetCursor(mouseCursor);
+	}
+	else
+		MM_GetPtr (&cursorsave,cursorwidth*cursorheight*5);
 }
 
 

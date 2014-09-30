@@ -881,22 +881,30 @@ US_UpdateCursor(void)
 	CursorInfo	info;
 
 	IN_ReadCursor(&info);
-	if (info.x || info.y || CursorBad)
+	if (cursorhw)
 	{
-		CursorX += info.x;
-		if (CursorX >= MaxX)
-			CursorX = MaxX - 1;
-		else if (CursorX < 0)
-			CursorX = 0;
+		CursorX = info.x;
+		CursorY = info.y;
+	}
+	else
+	{
+		if (info.x || info.y || CursorBad)
+		{
+			CursorX += info.x;
+			if (CursorX >= MaxX)
+				CursorX = MaxX - 1;
+			else if (CursorX < 0)
+				CursorX = 0;
 
-		CursorY += info.y;
-		if (CursorY >= MaxY)
-			CursorY = MaxY - 1;
-		else if (CursorY < 0)
-			CursorY = 0;
+			CursorY += info.y;
+			if (CursorY >= MaxY)
+				CursorY = MaxY - 1;
+			else if (CursorY < 0)
+				CursorY = 0;
 
-		VW_MoveCursor(CursorX,CursorY);
-		CursorBad = false;
+			VW_MoveCursor(CursorX,CursorY);
+			CursorBad = false;
+		}
 	}
 	Button0 = info.button0;
 	Button1 = info.button1;
