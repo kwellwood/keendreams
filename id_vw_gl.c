@@ -107,8 +107,8 @@ void VW_GL_UpdateGLBuffer()
 
 void VW_GL_Present()
 {
-	float offX = lastdrawnpan/320.0;
-	float endX = (320.0 + lastdrawnpan)/linewidth;
+	float offX = (float)lastdrawnpan/(float)linewidth;
+	float endX = offX + (320.0/linewidth);
 	float vtxCoords[] = {-1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f};
 	float texCoords[] = {offX, 1.0, endX, 1.0, endX, 0.0, offX, 0.0};
 

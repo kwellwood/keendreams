@@ -220,7 +220,7 @@ void SpawnCart (int tilex, int tiley)
 
 void CartReact (objtype *ob)
 {
-	unsigned far *map;
+	uint16_t *map;
 
 	if (ob->xdir == 1 && ob->hitwest)
 	{
@@ -921,7 +921,7 @@ void SpawnApel (int tilex, int tiley)
 void ApelThink (objtype *ob)
 {
 	int	x,y;
-	unsigned far *map;
+	uint16_t *map;
 
 	if (ob->top > player->bottom || ob->bottom < player->top)
 	{
@@ -933,7 +933,7 @@ void ApelThink (objtype *ob)
 		else
 			y = ob->tiletop;
 
-		map = (unsigned _seg *)mapsegs[1]+
+		map = mapsegs[1]+
 			mapbwidthtable[y]/2 + ob->tilemidx;
 
 		if ((tinf[INTILE+*map]&0x7f) == 1)
@@ -971,7 +971,7 @@ void ApelThink (objtype *ob)
 
 void ApelClimbThink (objtype *ob)
 {
-	unsigned far *map;
+	uint16_t *map;
 
 	map = (unsigned _seg *)mapsegs[1]+
 		mapbwidthtable[ob->tiletop]/2 + ob->temp4;
@@ -994,7 +994,7 @@ void ApelClimbThink (objtype *ob)
 
 void ApelSlideThink (objtype *ob)
 {
-	unsigned far *map;
+	uint16_t *map;
 
 	map = (unsigned _seg *)mapsegs[1]+
 		mapbwidthtable[ob->tilebottom]/2 + ob->temp4;

@@ -1296,7 +1296,8 @@ linknewspot:
 	pixx = globalx >> G_SY_SHIFT;
 	shift = 0;//(pixx&7)/2;
 
-	sprite->screenx = globalx >> (G_SY_SHIFT);
+	int shiftMask = ~(4-spr->shifts) & ~1;
+	sprite->screenx = (globalx >> (G_SY_SHIFT)) & shiftMask;
 	sprite->screeny = globaly >> G_SY_SHIFT;
 	sprite->width = block->width[shift] * 8;
 	sprite->height = spr->height;
