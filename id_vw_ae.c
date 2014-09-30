@@ -108,6 +108,7 @@ void VWL_UpdateScreenBlocks()
 	do
 	{
 		unsigned updateoffset = (unsigned)(cur - updateptr);
+		if (!*cur++) continue;
 		unsigned copy = 16;
 		while(*cur++ == 1)
 			copy += 16;
@@ -117,6 +118,7 @@ void VWL_UpdateScreenBlocks()
 		VW_ScreenToScreen(src, dst, copy, 16);
 	}
 	while(cur < end);
+	memset(updateptr, 0, UPDATEWIDE*UPDATEHIGH);
 }
 
 void VW_SetScreen(unsigned crtc, unsigned pel)

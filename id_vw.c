@@ -707,6 +707,7 @@ void VW_ShowCursor (void)
 	{
 		SDL_ShowCursor(cursorvisible);
 	}
+	SDL_SetRelativeMouseMode(!cursorvisible);
 }
 
 
@@ -727,6 +728,7 @@ void VW_HideCursor (void)
 	{
 		SDL_ShowCursor(cursorvisible);
 	}
+	SDL_SetRelativeMouseMode(!cursorvisible);
 }
 
 //==========================================================================

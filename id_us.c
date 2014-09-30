@@ -2235,7 +2235,7 @@ USL_DoHelp(memptr text,long len)
 	boolean		done,
 				moved;
 	int			scroll;
-	word		i,
+	uintptr_t	i,
 				pixdiv,
 				w,h,
 				lines,cur,page,
@@ -2304,11 +2304,9 @@ USL_DoHelp(memptr text,long len)
 				}
 				else if (grmode == EGAGR)
 				{
-					VWB_Bar(WindowX,WindowY + (loc * h),WindowW,num * h,WHITE);
-					USL_DrawHelp((char far *)text,top,top + num,loc,h,lp);
 
 					pixdiv = 1;//8;
-					base = displayofs + panadjust + (WindowX / pixdiv);
+					base = bufferofs + panadjust + (WindowX);
 				}
 				else if (grmode == VGAGR)
 					pixdiv = 1;
@@ -2319,7 +2317,7 @@ USL_DoHelp(memptr text,long len)
 					destbase = base + ylookup[WindowY];
 					if (grmode == EGAGR)
 					{
-						EGAWRITEMODE(1);
+						//EGAWRITEMODE(1);
 						VW_WaitVBL(1);
 					}
 					VW_ScreenToScreen(srcbase,destbase,WindowW / pixdiv,
@@ -2343,9 +2341,12 @@ USL_DoHelp(memptr text,long len)
 				else if (grmode == EGAGR)
 				{
 					base = panadjust + (WindowX / pixdiv) +
-							ylookup[WindowY + (loc * h)];
-					VW_ScreenToScreen(base + bufferofs,base + displayofs,
-										WindowW / pixdiv,h);
+							ylookup[WindowY];
+					VWB_Bar(WindowX,WindowY + (loc * h),WindowW,num * h,WHITE);
+					USL_DrawHelp((char *)text,top,top + num,loc,h,lp);
+					VW_MarkUpdateBlock(WindowX, WindowY, WindowX + WindowW, WindowX + WindowH);
+//					VW_ScreenToScreen(base + bufferofs,base + displayofs,
+//										WindowW / pixdiv,WindowH);
 				}
 			}
 			else

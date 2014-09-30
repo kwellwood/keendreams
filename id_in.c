@@ -664,7 +664,7 @@ IN_ReadCursor(CursorInfo *info)
 	IN_PumpEvents();
 	if (MousePresent)
 	{
-		if (cursorhw)
+		if (cursorhw && cursorvisible)
 		{
 			int x, y;
 			int buttons = SDL_GetMouseState(&x, &y);

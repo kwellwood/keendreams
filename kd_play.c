@@ -1793,6 +1793,7 @@ void HandleDeath (void)
 		else if (c.yaxis == 1 || LastScan == sc_DownArrow)
 			selection = 1;
 		
+		VW_WaitVBL(8);
 		VW_UpdateScreen();
 	} while (1);
 
