@@ -341,6 +341,7 @@ void IN_PumpEvents(void)
 static void
 INL_GetMouseDelta(int *x,int *y)
 {
+	SDL_GetRelativeMouseState(x, y);
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -352,9 +353,7 @@ INL_GetMouseDelta(int *x,int *y)
 static word
 INL_GetMouseButtons(void)
 {
-	word	buttons;
-
-	return(buttons);
+	return SDL_GetMouseState(0,0);
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -432,7 +431,7 @@ INL_ShutKbd(void)
 static boolean
 INL_StartMouse(void)
 {
-	return(false);
+	return(true);
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -662,13 +661,26 @@ IN_ReadCursor(CursorInfo *info)
 	info->x = info->y = 0;
 	info->button0 = info->button1 = false;
 
+	IN_PumpEvents();
 	if (MousePresent)
 	{
-		buttons = INL_GetMouseButtons();
-		dx /= 2;
-		dy /= 2;
-		INL_GetMouseDelta(&dx,&dy);
-		INL_AdjustCursor(info,buttons,dx,dy);
+		if (cursorhw)
+		{
+			int x, y;
+			int buttons = SDL_GetMouseState(&x, &y);
+			info->x = x;
+			info->y = y;
+			info->button0 = buttons & SDL_BUTTON(SDL_BUTTON_LEFT);
+			info->button1 = buttons & SDL_BUTTON(SDL_BUTTON_RIGHT);
+		}
+		else
+		{
+			buttons = INL_GetMouseButtons();
+			dx /= 2;
+			dy /= 2;
+			INL_GetMouseDelta(&dx,&dy);
+			INL_AdjustCursor(info,buttons,dx,dy);
+		}
 	}
 
 	for (i = 0;i < MaxJoys;i++)
