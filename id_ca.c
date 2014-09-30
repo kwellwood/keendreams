@@ -540,7 +540,7 @@ void CAL_SetupMapFile (void)
 	if ((handle = open("MAPDICT."EXTENSION, O_RDONLY)) == -1)
 		Quit ("Can't open MAPDICT."EXTENSION"!");
 	length = CAL_filelength(handle);
-	assert(length == 1020);
+	//assert(length == 1020);
 	CA_FarRead(handle, maphuffman, 255*sizeof(huffnode));
 	close(handle);
 #endif
@@ -1463,6 +1463,7 @@ void CA_CacheMarks (char *title, boolean cachedownlevel)
 // go through and make everything not needed purgable
 //
 	for (i=0;i<NUMCHUNKS;i++)
+	{
 		if (grneeded[i]&ca_levelbit)
 		{
 			if (grsegs[i])					// its allready in memory, make
@@ -1475,6 +1476,7 @@ void CA_CacheMarks (char *title, boolean cachedownlevel)
 			if (grsegs[i])					// not needed, so make it purgeable
 				MM_SetPurge(&grsegs[i],3);
 		}
+	}
 
 	if (!numcache)			// nothing to cache!
 		return;

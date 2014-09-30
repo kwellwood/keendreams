@@ -61,8 +61,8 @@ void RFL_UpdateTiles (void)
 		unsigned copy = 16;
 		if (cur >= end) break;
 		if (*cur++ != 1) continue;
-		while (cur < end && *cur++ == 1)
-			copy += 16;
+//		while (cur < end && *cur++ == 1)
+//			copy += 16;
 
 		unsigned dst = bufferofs + blockstarts[updateoffset];
 		unsigned src = masterofs + blockstarts[updateoffset];
