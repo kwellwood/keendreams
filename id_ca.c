@@ -594,6 +594,17 @@ void CAL_SetupAudioFile (void)
 	MM_GetPtr ((memptr)&audiostarts,length);
 	CA_FarRead(handle, (byte  *)audiostarts, length);
 	close(handle);
+#ifdef AUDIOCOMPRESSED
+//
+// load audiodct.ext (huffman tree)
+//
+	if ((handle = open("AUDIODCT."EXTENSION, O_RDONLY)) == -1)
+		Quit ("Can't open AUDIODCT."EXTENSION"!");
+	length = CAL_filelength(handle);
+	assert(length >= 1020);
+	CA_FarRead(handle, audiohuffman, 255*sizeof(huffnode));
+	close(handle);
+#endif
 #else
 	audiohuffman = (huffnode *)&audiodict;
 	CAL_OptimizeNodes (audiohuffman);
