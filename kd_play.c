@@ -1740,6 +1740,7 @@ void HandleDeath (void)
 	selection = 0;
 	do
 	{
+		IN_PumpEvents();
 		if (selection)
 			y = bottom;
 		else
@@ -1791,6 +1792,8 @@ void HandleDeath (void)
 			selection = 0;
 		else if (c.yaxis == 1 || LastScan == sc_DownArrow)
 			selection = 1;
+		
+		VW_UpdateScreen();
 	} while (1);
 
 }

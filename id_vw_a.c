@@ -177,6 +177,7 @@ word **shifttabletable = { shiftdata0, shiftdata1, shiftdata2, shiftdata3, shift
 
 void VW_WaitVBL(int vblanks)
 {
+	VW_GL_Present();
 }
 
 cardtype VW_VideoID()

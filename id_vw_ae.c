@@ -81,8 +81,10 @@ void VW_ScreenToScreen(unsigned source, unsigned dest, unsigned wide, unsigned h
 	if (source == dest) return;
 	for (y = 0; y < height; y++)
 	{
+#ifndef VW_MMAP_RINGBUFFER
 		dest = (dest) % VW_VIDEOMEM_SIZE;
 		source = (source) % VW_VIDEOMEM_SIZE;
+#endif
 		memmove(&vw_videomem[dest], &vw_videomem[source], wide);
 		dest += linewidth;
 		source += linewidth;

@@ -1584,7 +1584,7 @@ redraw:
 			if (porty<0)
 			{
 				height += porty;					// clip top off
-				sourceofs -= porty*sprite->width;
+				sourceofs -= porty*sprite->width/8;
 				porty = 0;
 			}
 			else if (porty+height>PORTSCREENHIGH)

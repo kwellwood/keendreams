@@ -126,7 +126,7 @@ typedef struct	objstruct
 
 	int16_t			hitnorth,hiteast,hitsouth,hitwest;	// wall numbers contacted
 
-	int16_t			temp1,temp2,temp3,temp4;
+	intptr_t			temp1,temp2,temp3,temp4;
 
 	void		*sprite;
 
