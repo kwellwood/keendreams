@@ -64,6 +64,7 @@
 		ScanCode	LastScan;
 		KeyboardDef	KbdDefs[MaxKbds] = {{0x1d,0x38,0x47,0x48,0x49,0x4b,0x4d,0x4f,0x50,0x51}};
 		JoystickDef	JoyDefs[MaxJoys];
+		SDL_Joystick	*Joysticks[MaxJoys];
 		ControlType	Controls[MaxPlayers];
 
 //	Internal variables
@@ -364,6 +365,10 @@ INL_GetMouseButtons(void)
 void
 IN_GetJoyAbs(word joy,word *xp,word *yp)
 {
+	if (xp)
+		*xp = SDL_JoystickGetAxis(Joysticks[joy], 0);
+	if (yp)
+		*yp = SDL_JoystickGetAxis(Joysticks[joy], 1);
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -386,6 +391,7 @@ INL_GetJoyDelta(word joy,int *dx,int *dy,boolean adaptive)
 static word
 INL_GetJoyButtons(word joy)
 {
+	return (SDL_JoystickGetButton(Joysticks[joy], 0) | SDL_JoystickGetButton(Joysticks[joy],1) << 1);
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -397,6 +403,7 @@ INL_GetJoyButtons(word joy)
 word
 IN_GetJoyButtonsDB(word joy)
 {
+	return INL_GetJoyButtons(joy);
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -500,6 +507,11 @@ static boolean
 INL_StartJoy(word joy)
 {
 	word x,y;
+	
+	if (joy >= SDL_NumJoysticks()) return false;
+	
+	Joysticks[joy] = SDL_JoystickOpen(0);
+	
 
 	IN_GetJoyAbs(joy, &x, &y);
 
@@ -522,6 +534,7 @@ static void
 INL_ShutJoy(word joy)
 {
 	JoysPresent[joy] = false;
+	SDL_JoystickClose(Joysticks[joy]);
 }
 
 //	Public routines
