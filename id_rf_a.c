@@ -29,13 +29,39 @@ void RFL_NewTile (unsigned updateoffset)
 	uint16_t fg = mapsegs[1][tileofs/2];
 	uint16_t bg = mapsegs[0][tileofs/2];
 
-	VW_UnmaskedToPAL8(grsegs[STARTTILE16+bg], dst, 0, 0, linewidth, 16, 16);
-	if(fg)
+	if(grsegs[STARTTILE16+bg])
+		VW_UnmaskedToPAL8(grsegs[STARTTILE16+bg], dst, 0, 0, linewidth, 16, 16);
+	if(fg && grsegs[STARTTILE16M+fg])
 		VW_MaskedBlitToPAL8(grsegs[STARTTILE16M+fg], dst, 0, 0, linewidth, 16, 16);
 }
 
+//=================
+//
+// RFL_MaskForegroundTiles
+//
+// Scan through update looking for 3's. If the foreground tile there is a
+// masked foreground tile, draw it to the screen
+//
+//=================
+
 void RFL_MaskForegroundTiles (void)
 {
+	byte *cur = updateptr;
+	byte *end = cur + (TILESWIDE+1)*TILESHIGH;
+	do
+	{
+		unsigned updateoffset = (unsigned)(cur - updateptr);
+		if (cur >= end) break;
+		if (*cur++ != 3) continue;
+
+		unsigned tileofs = originmap + updatemapofs[updateoffset];
+		uint16_t fg = mapsegs[1][tileofs/2];
+		if(fg == 0 || !(tinf[INTILE+fg] & 0x80)) continue;
+
+		uint8_t* dst = &vw_videomem[bufferofs] + blockstarts[updateoffset];
+		VW_MaskedBlitToPAL8(grsegs[STARTTILE16M+fg], dst, 0, 0, linewidth, 16, 16);
+	}
+	while(cur < end);
 }
 
 //=================
