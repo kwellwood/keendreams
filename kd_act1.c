@@ -912,7 +912,7 @@ void SpawnCarrot (int tilex, int tiley)
 
 void CarrotReact (objtype *ob)
 {
-	unsigned x, width, bot, far *map;
+	uint16_t x, width, bot, far *map;
 
 	if (ob->xdir == 1 && ob->hitwest)
 	{
@@ -1068,7 +1068,8 @@ void SpawnGrape (int tilex, int tiley)
 
 void GrapeThink (objtype *ob)
 {
-	unsigned y,starty,endy, far *map;
+	unsigned y,starty,endy;
+	uint16_t *map;
 
 	if (player->left > ob->right
 		|| player->right < ob->left
