@@ -363,7 +363,7 @@ INL_GetMouseButtons(void)
 //
 ///////////////////////////////////////////////////////////////////////////
 void
-IN_GetJoyAbs(word joy,word *xp,word *yp)
+IN_GetJoyAbs(word joy,int *xp,int *yp)
 {
 	if (xp)
 		*xp = SDL_JoystickGetAxis(Joysticks[joy], 0);
@@ -515,14 +515,8 @@ INL_StartJoy(word joy)
 
 	IN_GetJoyAbs(joy, &x, &y);
 
-	if (((x == 0) || (x > MaxJoyValue - 10)) ||
-		 ((y == 0) || (y > MaxJoyValue - 10)))
-		return(false);
-	else
-	{
-		IN_SetupJoy(joy, 0, x*2, 0, y*2);
-		return(true);
-	}
+	//IN_SetupJoy(joy, 0, x*2, 0, y*2);
+	return(true);
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -568,6 +562,8 @@ IN_Startup(void)
 		}
 	}
 
+	if (checkjoys)
+		SDL_Init(SDL_INIT_JOYSTICK);
 	INL_StartKbd();
 	MousePresent = checkmouse? INL_StartMouse() : false;
 
@@ -781,7 +777,8 @@ register	KeyboardDef	*def;
 			break;
 		case ctrl_Joystick1:
 		case ctrl_Joystick2:
-			INL_GetJoyDelta(type - ctrl_Joystick,&dx,&dy,false);
+			//INL_GetJoyDelta(type - ctrl_Joystick,&dx,&dy,false);
+			IN_GetJoyAbs(type - ctrl_Joystick, &dx, &dy);
 			buttons = INL_GetJoyButtons(type - ctrl_Joystick);
 			realdelta = true;
 			break;
