@@ -65,6 +65,7 @@
 		KeyboardDef	KbdDefs[MaxKbds] = {{0x1d,0x38,0x47,0x48,0x49,0x4b,0x4d,0x4f,0x50,0x51}};
 		JoystickDef	JoyDefs[MaxJoys];
 		SDL_Joystick	*Joysticks[MaxJoys];
+		SDL_GameController *JoyController[MaxJoys];
 		ControlType	Controls[MaxPlayers];
 
 //	Internal variables
@@ -365,10 +366,37 @@ INL_GetMouseButtons(void)
 void
 IN_GetJoyAbs(word joy,int *xp,int *yp)
 {
+	int AxisX = 0;
+	int AxisY = 1;
+	if (JoyController[joy])
+	{
+		AxisX = SDL_GameControllerGetAxis(JoyController[joy], SDL_CONTROLLER_AXIS_LEFTX);
+		AxisY = SDL_GameControllerGetAxis(JoyController[joy], SDL_CONTROLLER_AXIS_LEFTY);
+	}
 	if (xp)
-		*xp = SDL_JoystickGetAxis(Joysticks[joy], 0);
+		*xp = SDL_JoystickGetAxis(Joysticks[joy], AxisX);
 	if (yp)
-		*yp = SDL_JoystickGetAxis(Joysticks[joy], 1);
+		*yp = SDL_JoystickGetAxis(Joysticks[joy], AxisY);
+}
+
+///////////////////////////////////////////////////////////////////////////
+//
+//	IN_GetJoyName() - Returns the name of the Joystick from the
+//		system.
+//
+///////////////////////////////////////////////////////////////////////////
+char*
+IN_GetJoyName(word joy)
+{
+	if (JoyController[joy])
+	{
+		return SDL_GameControllerName(JoyController[joy]);
+	}
+	else if (joy == 0)
+		return "Joystick 1";
+	else if (joy == 1)
+		return "Joystick 2";
+	return "Unknown Joystick";
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -391,7 +419,13 @@ INL_GetJoyDelta(word joy,int *dx,int *dy,boolean adaptive)
 static word
 INL_GetJoyButtons(word joy)
 {
-	return (SDL_JoystickGetButton(Joysticks[joy], 0) | SDL_JoystickGetButton(Joysticks[joy],1) << 1);
+	int buttonA = 0, buttonB = 1;
+	if (JoyController[joy])
+	{
+		buttonA = SDL_GameControllerGetAxis(JoyController[joy], SDL_CONTROLLER_BUTTON_A);
+		buttonB = SDL_GameControllerGetAxis(JoyController[joy], SDL_CONTROLLER_BUTTON_B);
+	}
+	return (SDL_JoystickGetButton(Joysticks[joy], buttonA) | SDL_JoystickGetButton(Joysticks[joy],buttonB) << 1);
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -510,7 +544,13 @@ INL_StartJoy(word joy)
 	
 	if (joy >= SDL_NumJoysticks()) return false;
 	
-	Joysticks[joy] = SDL_JoystickOpen(0);
+	Joysticks[joy] = SDL_JoystickOpen(joy);
+	if (SDL_IsGameController(joy))
+	{
+		JoyController[joy] = SDL_GameControllerOpen(joy);
+	}
+	else
+		JoyController[joy] = 0;
 	
 
 	IN_GetJoyAbs(joy, &x, &y);
@@ -529,6 +569,8 @@ INL_ShutJoy(word joy)
 {
 	JoysPresent[joy] = false;
 	SDL_JoystickClose(Joysticks[joy]);
+	if (JoyController[joy])
+		SDL_GameControllerClose(JoyController[joy]);
 }
 
 //	Public routines
