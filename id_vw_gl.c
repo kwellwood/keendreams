@@ -26,6 +26,10 @@ GLuint palettetexture;
 GLuint vw_shaderprogram;
 unsigned lastdrawnbuffer;
 unsigned lastdrawnpan;
+int vw_viewportx, vw_viewporty, vw_viewportw, vw_viewporth;
+int vw_integerscalex, vw_integerscaley;
+GLuint fbotexture;
+GLuint framebufferobj;
 extern SDL_Window *window;
 extern const uint8_t VW_EGAPalette[16][3];
 const char *pxprog = 	"#version 110\n"\
@@ -76,6 +80,64 @@ void VW_GL_Init()
 	glUniform1i(glGetUniformLocation(vw_shaderprogram, "palette"),1);
 }
 
+void VW_GL_SetupFramebufferObject()
+{
+	if (!GLEW_EXT_framebuffer_object)
+	{
+		return;
+	}
+	if (!fbotexture)
+		glGenTextures(1, &fbotexture);
+	if (!framebufferobj)
+		glGenFramebuffersEXT(1, &framebufferobj);
+	glBindTexture(GL_TEXTURE_2D, fbotexture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, vw_integerscalex, vw_integerscaley, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, framebufferobj);
+	glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, GL_TEXTURE_2D, fbotexture, 0);
+	
+	GLenum framebufferstatus = glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT);
+	if (framebufferstatus != GL_FRAMEBUFFER_COMPLETE_EXT)
+	{
+		Quit("Framebuffer Object was not complete!");
+	}
+	glViewport(0, 0, vw_integerscalex, vw_integerscaley);
+}
+
+void VW_GL_BlitFramebufferObject(int vw, int vh)
+{
+	if (!GLEW_EXT_framebuffer_object) return;
+	glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
+	if (!GLEW_EXT_framebuffer_blit)
+	{
+		float vtxCoords[] = {-1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f};
+		float fboCoords[] = {0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f};
+		glVertexPointer(2, GL_FLOAT, 0, vtxCoords);
+		glTexCoordPointer(2, GL_FLOAT, 0, fboCoords);
+		glUseProgram(0);
+		glEnable(GL_TEXTURE_2D);
+		glBindTexture(GL_TEXTURE_2D, fbotexture);
+		glDrawArrays(GL_QUADS, 0, 4);
+	}
+	else
+	{
+		glBindFramebufferEXT(GL_DRAW_FRAMEBUFFER_EXT, 0);
+		glBindFramebufferEXT(GL_READ_FRAMEBUFFER_EXT, framebufferobj);
+		glBlitFramebufferEXT(0, 0, vw_integerscalex, vw_integerscaley, 0, 0, vw, vh, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+	}
+}
+
+void VW_GL_GetViewport(int *x, int *y, int *w, int *h)
+{
+	int winw, winh;
+	SDL_GetWindowSize(window,&winw, &winh);
+	// TODO: Aspect ratio correction.
+	if (x) *x = 0;
+	if (y) *y = 0;
+	if (w) *w = winw;
+	if (h) *h = winh;
+}
+
 void VW_GL_UpdateLineWidth()
 {
 	glBindTexture(GL_TEXTURE_2D, screentexture);
@@ -112,6 +174,12 @@ void VW_GL_Present()
 	float vtxCoords[] = {-1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f};
 	float texCoords[] = {offX, 1.0, endX, 1.0, endX, 0.0, offX, 0.0};
 
+	int vx, vy, vw, vh;
+	VW_GL_GetViewport(&vx,&vy,&vw,&vh);
+	vw_integerscalex = (vw/320)*320;
+	vw_integerscaley = (vh/200)*200;
+	VW_GL_SetupFramebufferObject();
+	
 	glClearColor(0,1,0,1);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	//glUseProgram(vw_shaderprogram);
@@ -123,5 +191,7 @@ void VW_GL_Present()
 	glTexCoordPointer(2, GL_FLOAT, 0, texCoords);
 
 	glDrawArrays(GL_QUADS, 0, 4);
+	glViewport(vx,vy,vw,vh);
+	VW_GL_BlitFramebufferObject(vw, vh);
 	SDL_GL_SwapWindow(window);
 }

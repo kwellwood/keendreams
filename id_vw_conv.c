@@ -95,7 +95,7 @@ void VW_UnmaskedSubRectToPAL8(void *src,void *dest, int x, int y, int pitch, int
 }
 
 // This is used for the mouse cursor, if we're doing HW cursors.
-void VW_MaskedToRGBA(void *src,void *dest, int x, int y, int pitch, int w, int h)
+void VW_MaskedScaleToRGBA(void *src,void *dest, int xscale, int yscale, int pitch, int w, int h)
 {
 	uint8_t *dstptr = (uint8_t*)dest;
 	uint8_t *srcptr_a = (uint8_t*)src;
@@ -117,10 +117,17 @@ void VW_MaskedToRGBA(void *src,void *dest, int x, int y, int pitch, int w, int h
 					((srcptr_b[plane_off] & plane_bit)?1:0);
 
 			// ARGB LE output
-			dstptr[(sy+y)*pitch+(sx+x)*4+0] = VW_EGAPalette[pixel][2];
-			dstptr[(sy+y)*pitch+(sx+x)*4+1] = VW_EGAPalette[pixel][1];
-			dstptr[(sy+y)*pitch+(sx+x)*4+2] = VW_EGAPalette[pixel][0];
-			dstptr[(sy+y)*pitch+(sx+x)*4+3] = ((srcptr_a[plane_off] & plane_bit)?0x00:0xFF);
+			for(int dy = 0; dy < yscale; ++dy)
+			{
+				for(int dx = 0; dx < xscale; ++dx)
+				{
+					size_t pixcoord = (sy*yscale+dy)*pitch+(sx*xscale+dx)*4;
+					dstptr[pixcoord+0] = VW_EGAPalette[pixel][2];
+					dstptr[pixcoord+1] = VW_EGAPalette[pixel][1];
+					dstptr[pixcoord+2] = VW_EGAPalette[pixel][0];
+					dstptr[pixcoord+3] = ((srcptr_a[plane_off] & plane_bit)?0x00:0xFF);
+				}
+			}
 		}
 	}		
 }
