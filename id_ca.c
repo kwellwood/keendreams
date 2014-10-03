@@ -608,7 +608,7 @@ void CAL_SetupAudioFile (void)
 		Quit ("Can't open AUDIODCT."EXTENSION"!");
 	length = CAL_filelength(handle);
 	//assert(length >= 1020);
-	CA_FarRead(handle, audiohuffman, 255*sizeof(huffnode));
+	CA_FarRead(handle, audiohuffman, sizeof(audiohuffman));
 	close(handle);
 #endif
 #else
@@ -715,7 +715,7 @@ void CA_CacheAudioChunk (int chunk)
 
 	lseek(audiohandle,pos,SEEK_SET);
 
-#ifndef AUDIOHEADERLINKED
+#if !defined(AUDIOHEADERLINKED) && !defined(AUDIOCOMPRESSED)
 
 	MM_GetPtr ((memptr)&audiosegs[chunk],compressed);
 	CA_FarRead(audiohandle,audiosegs[chunk],compressed);

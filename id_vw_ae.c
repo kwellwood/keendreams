@@ -52,7 +52,7 @@ void VW_Vlin(unsigned yl, unsigned yh, unsigned x, unsigned color)
 {
 	uint8_t *screen = &vw_videomem[bufferofs];
 	unsigned y;
-	for(y = yl; y < yh; ++y)
+	for(y = yl; y <= yh; ++y)
 	{
 		screen[(y*linewidth+x) % VW_VIDEOMEM_SIZE] = color;
 	}
