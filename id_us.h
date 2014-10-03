@@ -71,6 +71,7 @@ extern	word		WindowX,WindowY,// Current location of window
 extern	void	US_Startup(void),
 				US_Setup(void),
 				US_Shutdown(void),
+				US_LToA(long n, char *s),
 				US_InitRndT(boolean randomize),
 				US_SetLoadSaveHooks(boolean (*load)(int),
 									boolean (*save)(int),
