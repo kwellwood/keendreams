@@ -110,22 +110,29 @@ extern	unsigned	bufferwidth,bufferheight;	// used by font drawing stuff
 =======================
 */
 
-static	char *ParmStrings[] = {"HIDDENCARD",""};
+static	char *ParmStrings[] = {"HIDDENCARD", "FULLSCREEN", ""};
 
 void	VW_Startup (void)
 {
 	int i;
+	int fullscreen = false;
 	SDL_Init(SDL_INIT_VIDEO);
 
 
 	videocard = 0;
 
 	for (i = 1;i < _argc;i++)
-		if (US_CheckParm(_argv[i],ParmStrings) == 0)
+	{
+		int p = US_CheckParm(_argv[i],ParmStrings);
+		if (p == 0)
 		{
 			videocard = EGAcard;
-			break;
 		}
+		else if (p == 1)
+		{
+			fullscreen = true;
+		}
+	}
 
 	if (!videocard)
 		videocard = VW_VideoID ();
@@ -149,7 +156,10 @@ Quit ("Improper video card!  If you really have a CGA card that I am not \n"
 	cursorvisible = 0;
 	
 	VWL_SetupVideoMemory();
-	window = SDL_CreateWindow("Keen Dreams", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 320, 200, SDL_WINDOW_OPENGL);
+	window = SDL_CreateWindow("Keen Dreams", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1024, 768, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
+	SDL_SetWindowMinimumSize(window, 320, 200);
+	if (fullscreen)
+		SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
 	glcontext = SDL_GL_CreateContext(window);
 	glewInit();
 	glViewport(0,0,320,200);
@@ -744,7 +754,11 @@ void VW_HideCursor (void)
 void VW_MoveCursor (int x, int y)
 {
 	if (cursorhw)
-		SDL_WarpMouseInWindow(window, x, y);
+	{
+		int vx, vy, vw, vh;
+		VW_GL_GetViewport(&vx, &vy, &vw, &vh);
+		SDL_WarpMouseInWindow(window, x*vw/320+vx, y*vh/200+vx);
+	}
 	cursorx = x;
 	cursory = y;
 }
@@ -775,19 +789,27 @@ void VW_SetCursor (int spritenum)
 	CA_CacheGrChunk (spritenum);
 	MM_SetLock (&grsegs[cursornumber],true);
 
-	cursorwidth = spritetable[spritenum-STARTSPRITES].width+1;
+	cursorwidth = spritetable[spritenum-STARTSPRITES].width*8;
 	cursorheight = spritetable[spritenum-STARTSPRITES].height;
+	int cursorscalex = 1, cursorscaley = 1;
+	int winw, winh;
+	VW_GL_GetViewport(0,0, &winw, &winh);
+	cursorscalex = winw/320;
+	cursorscaley = winh/200;
+	// Intel graphics hw fails on large cursors.
+	if (cursorscalex > 2) cursorscalex = 2;
+	if (cursorscaley > 2) cursorscaley = 2;
 	if (cursorhw)
 	{
-		SDL_Surface *mouseSurface = SDL_CreateRGBSurface(0, spritetable[cursornumber-STARTSPRITES].width*8, spritetable[cursornumber-STARTSPRITES].height, 32, 0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000);
+		SDL_Surface *mouseSurface = SDL_CreateRGBSurface(0, cursorwidth*cursorscalex, cursorheight*cursorscaley, 32, 0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000);
 		SDL_LockSurface(mouseSurface);
-		VW_MaskedToRGBA(((spritetype*)(grsegs[cursornumber]))->data, mouseSurface->pixels, 0, 0, mouseSurface->pitch, spritetable[cursornumber-STARTSPRITES].width*8, cursorheight);
+		VW_MaskedScaleToRGBA(((spritetype*)(grsegs[cursornumber]))->data, mouseSurface->pixels, cursorscalex, cursorscaley, mouseSurface->pitch, cursorwidth, cursorheight);
 		SDL_UnlockSurface(mouseSurface);
-		SDL_Cursor *mouseCursor = SDL_CreateColorCursor(mouseSurface, spritetable[cursornumber-STARTSPRITES].orgx, spritetable[cursornumber-STARTSPRITES].orgy);
+		SDL_Cursor *mouseCursor = SDL_CreateColorCursor(mouseSurface, spritetable[cursornumber-STARTSPRITES].orgx*cursorscalex, spritetable[cursornumber-STARTSPRITES].orgy*cursorscaley);
 		SDL_SetCursor(mouseCursor);
 	}
 	else
-		MM_GetPtr (&cursorsave,cursorwidth*cursorheight*5);
+		MM_GetPtr (&cursorsave,cursorwidth*cursorheight);
 }
 
 

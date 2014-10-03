@@ -719,8 +719,10 @@ IN_ReadCursor(CursorInfo *info)
 		{
 			int x, y;
 			int buttons = SDL_GetMouseState(&x, &y);
-			info->x = x;
-			info->y = y;
+			int vx, vy, vw, vh;
+			VW_GL_GetViewport(&vx, &vy, &vw, &vh);
+			info->x = (x-vx)*320/vw;
+			info->y = (y-vy)*200/vh;
 			info->button0 = buttons & SDL_BUTTON(SDL_BUTTON_LEFT);
 			info->button1 = buttons & SDL_BUTTON(SDL_BUTTON_RIGHT);
 		}

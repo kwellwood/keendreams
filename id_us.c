@@ -2235,9 +2235,9 @@ USL_DoHelp(memptr text,long len)
 	boolean		done,
 				moved;
 	int			scroll;
+	word			w,h;
 	uintptr_t	i,
 				pixdiv,
-				w,h,
 				lines,cur,page,
 				top,num,loc,
 				far *lp,
