@@ -555,7 +555,7 @@ void CAL_SetupMapFile (void)
 //
 // open the data file
 //
-#ifdef MAPHEADERLINKED
+#if defined(MAPHEADERLINKED) || defined(MAPSCOMPRESSED)
 	if ((maphandle = open("KDREAMS.MAP",
 		 O_RDONLY)) == -1)
 		Quit ("Can't open KDREAMS.MAP!");
@@ -587,9 +587,15 @@ void CAL_SetupAudioFile (void)
 // load maphead.ext (offsets and tileinfo for map file)
 //
 #ifndef AUDIOHEADERLINKED
+#ifdef AUDIOCOMPRESSED
+	if ((handle = open("AUDIOHHD."EXTENSION,
+		 O_RDONLY)) == -1)
+		Quit ("Can't open AUDIOHHD."EXTENSION"!");
+#else
 	if ((handle = open("AUDIOHED."EXTENSION,
 		 O_RDONLY)) == -1)
 		Quit ("Can't open AUDIOHED."EXTENSION"!");
+#endif
 	length = CAL_filelength(handle);
 	MM_GetPtr ((memptr)&audiostarts,length);
 	CA_FarRead(handle, (byte  *)audiostarts, length);
@@ -601,7 +607,7 @@ void CAL_SetupAudioFile (void)
 	if ((handle = open("AUDIODCT."EXTENSION, O_RDONLY)) == -1)
 		Quit ("Can't open AUDIODCT."EXTENSION"!");
 	length = CAL_filelength(handle);
-	assert(length >= 1020);
+	//assert(length >= 1020);
 	CA_FarRead(handle, audiohuffman, 255*sizeof(huffnode));
 	close(handle);
 #endif
@@ -614,7 +620,7 @@ void CAL_SetupAudioFile (void)
 //
 // open the data file
 //
-#ifndef AUDIOHEADERLINKED
+#if !defined(AUDIOHEADERLINKED) && !defined(AUDIOCOMPRESSED)
 	if ((audiohandle = open("AUDIOT."EXTENSION,
 		 O_RDONLY)) == -1)
 		Quit ("Can't open AUDIOT."EXTENSION"!");
