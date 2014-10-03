@@ -337,6 +337,13 @@ US_Shutdown(void)
 	US_Started = false;
 }
 
+void
+US_LToA(long int i, char* s)
+{
+	sprintf(s, "%ld", i);
+}
+
+
 ///////////////////////////////////////////////////////////////////////////
 //
 //	US_CheckParm() - checks to see if a string matches one of a set of
@@ -594,8 +601,8 @@ void
 US_PrintUnsigned(longword n)
 {
 	char	buffer[32];
-
-	US_Print("NUM"); // XXX ultoa(n,buffer,10));
+	US_LToA(n,buffer);
+	US_Print(buffer);
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -607,8 +614,8 @@ void
 US_PrintSigned(long n)
 {
 	char	buffer[32];
-
-	US_Print("SNUM"); // XXX ltoa(n,buffer,10));
+	US_LToA(n,buffer);
+	US_Print(buffer);
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -3516,7 +3523,7 @@ US_DisplayHighScores(int which)
 			y = PrintY;
 
 		PrintX = x + (7 * 8);
-		// XXX ultoa(s->score,buffer,10);
+		US_LToA(s->score,buffer);
 		for (str = buffer;*str;str++)
 			*str = *str + (129 - '0');	// Used fixed-width numbers (129...)
 		USL_MeasureString(buffer,&w,&h);

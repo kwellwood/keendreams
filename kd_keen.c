@@ -147,20 +147,20 @@ void	FixScoreBox (void)
 	width = block->width[0];
 	planesize = block->planesize[0];
 	dest = (byte far *)grsegs[SCOREBOXSPR]+block->sourceoffset[0]
-		+ planesize + width*16 + 4*CHARWIDTH;
+		+ planesize + width*16 + 4;
 	if (mapon == 15)
 	{
 		MemDrawChar (20,dest,width,planesize);
-		MemDrawChar (21,dest+CHARWIDTH,width,planesize);
+		MemDrawChar (21,dest+1,width,planesize);
 		MemDrawChar (22,dest+width*8,width,planesize);
-		MemDrawChar (23,dest+width*8+CHARWIDTH,width,planesize);
+		MemDrawChar (23,dest+width*8+1,width,planesize);
 	}
 	else
 	{
 		MemDrawChar (28,dest,width,planesize);
-		MemDrawChar (29,dest+CHARWIDTH,width,planesize);
+		MemDrawChar (29,dest+1,width,planesize);
 		MemDrawChar (30,dest+width*8,width,planesize);
-		MemDrawChar (31,dest+width*8+CHARWIDTH,width,planesize);
+		MemDrawChar (31,dest+width*8+1,width,planesize);
 	}
 
 }
@@ -176,10 +176,20 @@ void	FixScoreBox (void)
 
 #if GRMODE == EGAGR
 
-void MemDrawChar (int char8,byte far *dest,unsigned width,unsigned planesize)
+void MemDrawChar (int char8,byte *dest,unsigned width,unsigned planesize)
 {
 	// For each plane, draw 8*8 character (starttile8+char8) with plane pitch width and plane
 	// size planesize
+	for (int plane = 0; plane < 4; ++plane)
+	{
+		for (int y = 0; y < 8; ++y)
+		{
+			*dest = ((byte*)(grsegs[STARTTILE8]))[char8*32+8*plane+y];
+			dest += width;
+		}
+		dest -= 8*width;
+		dest += planesize;
+	}
 
 }
 #endif
@@ -246,19 +256,19 @@ void ScoreThink (objtype *ob)
 		width = block->width[0];
 		planesize = block->planesize[0];
 		dest = (byte far *)grsegs[SCOREBOXSPR]+block->sourceoffset[0]
-			+ planesize + width*4 + 1*CHARWIDTH;
+			+ planesize + width*4 + 2;
 
-		//ltoa (gamestate.score,str,10);
+		US_LToA (gamestate.score,str);
 
 		// erase leading spaces
 		length = strlen(str);
 		for (i=6;i>length;i--)
-			MemDrawChar (0,dest+=CHARWIDTH,width,planesize);
+			MemDrawChar (0,dest++,width,planesize);
 
 		// draw digits
 		ch = str;
 		while (*ch)
-			MemDrawChar (*ch++ - '0'+1,dest+=CHARWIDTH,width,planesize);
+			MemDrawChar (*ch++ - '0'+1,dest++,width,planesize);
 
 #if GRMODE == EGAGR
 		ShiftScore ();
@@ -281,23 +291,23 @@ void ScoreThink (objtype *ob)
 		width = block->width[0];
 		planesize = block->planesize[0];
 		dest = (byte far *)grsegs[SCOREBOXSPR]+block->sourceoffset[0]
-			+ planesize + width*20 + 5*CHARWIDTH;
+			+ planesize + width*20 + 6;
 
 		if (number > 99)
 			strcpy (str,"99");
 		else
 		{
-			// XXX ltoa (number,str,10);
+			US_LToA(number,str);
 		}
 		// erase leading spaces
 		length = strlen(str);
 		for (i=2;i>length;i--)
-			MemDrawChar (0,dest+=CHARWIDTH,width,planesize);
+			MemDrawChar (0,dest++,width,planesize);
 
 		// draw digits
 		ch = str;
 		while (*ch)
-			MemDrawChar (*ch++ - '0'+1,dest+=CHARWIDTH,width,planesize);
+			MemDrawChar (*ch++ - '0'+1,dest++,width,planesize);
 
 #if GRMODE == EGAGR
 		ShiftScore ();
@@ -315,7 +325,7 @@ void ScoreThink (objtype *ob)
 		width = block->width[0];
 		planesize = block->planesize[0];
 		dest = (byte far *)grsegs[SCOREBOXSPR]+block->sourceoffset[0]
-			+ planesize + width*20 + 2*CHARWIDTH;
+			+ planesize + width*20 + 2;
 
 		if (gamestate.lives>9)
 			MemDrawChar ('9' - '0'+1,dest,width,planesize);
