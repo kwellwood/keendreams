@@ -104,14 +104,15 @@ void VW_ScreenToMem(unsigned source, memptr dest, unsigned wide, unsigned height
 void VWL_UpdateScreenBlocks()
 {
 	byte *cur = updateptr;
-	byte *end = cur + (UPDATEWIDE)*UPDATEHIGH+1;
+	byte *end = cur + (UPDATEWIDE)*UPDATEHIGH;
 	do
 	{
 		unsigned updateoffset = (unsigned)(cur - updateptr);
-		if (!*cur++) continue;
+		if (cur >= end) break;
+		if (*cur++ != 1) continue;
 		unsigned copy = 16;
-		while(*cur++ == 1)
-			copy += 16;
+		//while(*cur++ == 1)
+		//	copy += 16;
 
 		unsigned dst = displayofs + blockstarts[updateoffset];
 		unsigned src = bufferofs + blockstarts[updateoffset];

@@ -973,7 +973,7 @@ void ApelClimbThink (objtype *ob)
 {
 	uint16_t *map;
 
-	map = (unsigned _seg *)mapsegs[1]+
+	map = mapsegs[1]+
 		mapbwidthtable[ob->tiletop]/2 + ob->temp4;
 
 	if ((tinf[INTILE+*map]&0x7f) != 1)
@@ -996,7 +996,7 @@ void ApelSlideThink (objtype *ob)
 {
 	uint16_t *map;
 
-	map = (unsigned _seg *)mapsegs[1]+
+	map = mapsegs[1]+
 		mapbwidthtable[ob->tilebottom]/2 + ob->temp4;
 
 	if ((tinf[INTILE+*map]&0x7f) != 1)

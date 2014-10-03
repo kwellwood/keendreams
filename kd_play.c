@@ -1786,6 +1786,11 @@ void HandleDeath (void)
 		{
 			if (selection)
 				gamestate.mapon = 0;		// exit to tuberia
+			
+			// Since we load faster than most people release the key,
+			// we need to do this or they'll immediately re-enter the
+			// level.
+			IN_ClearKeysDown ();
 			return;
 		}
 		if (c.yaxis == -1 || LastScan == sc_UpArrow)
