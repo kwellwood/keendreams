@@ -978,11 +978,12 @@ ScanCode IN_WaitForKey(void)
 {
 	SDL_Event event;
 	ScanCode	result;
-	// TODO: Refresh the display to stop steam overlay hanging.
 	while (SDL_WaitEvent(&event))
 	{
 		INL_HandleSDLEvent(&event);
 		if (!(result = LastScan)) break;
+		// Refresh the display to stop steam overlay hanging.
+		VW_GL_Present();
 	}
 	LastScan = 0;
 	return (result);
@@ -999,11 +1000,12 @@ IN_WaitForASCII(void)
 {
 	SDL_Event event;
 	char		result;
-	// TODO: Refresh the display to stop steam overlay hanging.
 	while (SDL_WaitEvent(&event))
 	{
 		INL_HandleSDLEvent(&event);
 		if (!(result = LastASCII)) break;
+		// Refresh the display to stop steam overlay hanging.
+		VW_GL_Present();
 	}
 	LastASCII = '\0';
 	return(result);
@@ -1019,7 +1021,6 @@ IN_AckBack(void)
 {
 	word	i;
 
-	return;
 	while (!LastScan)
 	{
 		SDL_Event evt;
@@ -1050,6 +1051,8 @@ IN_AckBack(void)
 				}
 			}
 		}
+		// Make sure the screen is being refreshed so the steam overlay works.
+		VW_GL_Present();
 	}
 
 	IN_ClearKey(LastScan);
