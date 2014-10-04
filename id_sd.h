@@ -137,7 +137,7 @@ typedef	struct __attribute__((__packed__))
 					offsets[1];
 		} MusicGroup;
 
-typedef	struct __attribute__((__packed))
+typedef	struct __attribute__((__packed__))
 		{
 			/* This part needs to be set up by the user */
 			word        mood,*moods[sqMaxMoods];
