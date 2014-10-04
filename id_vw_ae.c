@@ -5,16 +5,37 @@
 
 uint8_t *vw_videomem;
 
+#ifndef WIN32
 #include <sys/mman.h>
 #include <stdlib.h>
 #include <unistd.h>
+#else
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#endif
 
 void VWL_SetupVideoMemory()
 {
 #ifdef VW_MMAP_RINGBUFFER
 	// We support video memory wrapping by getting the OS to set up page tables
 	// for us. Needs VW_VIDEOMEM_SIZE to be a multiple of the page size.
-	// TODO: Win32 version.
+#ifdef WIN32
+	HANDLE mapping = CreateFileMappingA(INVALID_HANDLE_VALUE, 0, PAGE_READWRITE, (uintptr_t)(vw_videomem) >> 32, (uintptr_t)vw_videomem & 0xffffffff, 0);
+	if (!mapping)
+		Quit("Couldn't create emulated video memory mapping.");
+	
+	vw_videomem = VirtualAlloc(0, VW_VIDEOMEM_SIZE * 2, MEM_RESERVE, PAGE_NOACCESS);
+	if (!vw_videomem)
+		Quit("Couldn't reserve address space for emulated video memory.");
+	
+	VirtualFree(vw_videomem, 0, MEM_RELEASE);
+	
+	if (!MapViewOfFile(mapping, FILE_MAP_ALL_ACCESS, 0, 0, VW_VIDEOMEM_SIZE, vw_videomem))
+		Quit("Couldn't map emulated video memory.");
+	if (!MapViewOfFile(mapping, FILE_MAP_ALL_ACCESS, 0, 0, VW_VIDEOMEM_SIZE, vw_videomem + VW_VIDEOMEM_SIZE))
+		Quit("Couldn't map emulated video memory.");
+	
+#else
 	char vmpath[] = "/dev/shm/kdreams-vmem-XXXXXX";
 	int fd = mkstemp(vmpath);
 	if (fd < 0) Quit("Couldn't create emulated video memory mapping.");
@@ -37,6 +58,7 @@ void VWL_SetupVideoMemory()
 		Quit("Couldn't map emulated video memory.");
 	
 	close(fd);
+#endif
 #else
 	vw_videomem = malloc(VW_VIDEOMEM_SIZE);
 #endif
