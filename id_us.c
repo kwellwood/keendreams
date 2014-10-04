@@ -63,10 +63,10 @@
 #define	MaxScores	10
 typedef	struct
 		{
-			char	name[MaxHighName + 1];
-			long	score;
-			word	completed;
-		} HighScore;
+			char		name[MaxHighName + 1];
+			uint32_t	score;
+			uint16_t	completed;
+		} __attribute__((__packed__)) HighScore;
 
 #define	MaxGameName		32
 #define	MaxSaveGames	7
@@ -75,7 +75,7 @@ typedef	struct
 			char	signature[4];
 			boolean	present;
 			char	name[MaxGameName + 1];
-		} SaveGame;
+		} __attribute__((__packed__)) SaveGame;
 
 //	Hack import for TED launch support
 extern	boolean		tedlevel;
@@ -3486,7 +3486,7 @@ US_ControlPanel(void)
 void
 US_DisplayHighScores(int which)
 {
-	char		buffer[16],*str;
+	unsigned char		buffer[16],*str;
 	word		i,
 				w,h,
 				x,y;
@@ -3524,8 +3524,8 @@ US_DisplayHighScores(int which)
 
 		PrintX = x + (7 * 8);
 		US_LToA(s->score,buffer);
-		for (str = buffer;*str;str++)
-			*str = *str + (129 - '0');	// Used fixed-width numbers (129...)
+		//for (str = buffer;*str;str++)
+		//	*str = *str + (129 - '0');	// Used fixed-width numbers (129...)
 		USL_MeasureString(buffer,&w,&h);
 		PrintX -= w;
 		US_Print(buffer);
