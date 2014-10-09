@@ -20,19 +20,20 @@ void VWL_SetupVideoMemory()
 	// We support video memory wrapping by getting the OS to set up page tables
 	// for us. Needs VW_VIDEOMEM_SIZE to be a multiple of the page size.
 #ifdef WIN32
-	HANDLE mapping = CreateFileMappingA(INVALID_HANDLE_VALUE, 0, PAGE_READWRITE, (uintptr_t)(vw_videomem) >> 32, (uintptr_t)vw_videomem & 0xffffffff, 0);
-	if (!mapping)
-		Quit("Couldn't create emulated video memory mapping.");
-	
 	vw_videomem = VirtualAlloc(0, VW_VIDEOMEM_SIZE * 2, MEM_RESERVE, PAGE_NOACCESS);
 	if (!vw_videomem)
 		Quit("Couldn't reserve address space for emulated video memory.");
 	
 	VirtualFree(vw_videomem, 0, MEM_RELEASE);
 	
-	if (!MapViewOfFile(mapping, FILE_MAP_ALL_ACCESS, 0, 0, VW_VIDEOMEM_SIZE, vw_videomem))
+	HANDLE mapping = CreateFileMappingA(INVALID_HANDLE_VALUE, 0, PAGE_READWRITE, (uintptr_t)(VW_VIDEOMEM_SIZE) >> 32, (uintptr_t)VW_VIDEOMEM_SIZE & 0xffffffff, 0);
+	if (!mapping)
+		Quit("Couldn't create emulated video memory mapping.");
+	
+	
+	if (!(vw_videomem = MapViewOfFileEx(mapping, FILE_MAP_ALL_ACCESS, 0, 0, VW_VIDEOMEM_SIZE, vw_videomem)))
 		Quit("Couldn't map emulated video memory.");
-	if (!MapViewOfFile(mapping, FILE_MAP_ALL_ACCESS, 0, 0, VW_VIDEOMEM_SIZE, vw_videomem + VW_VIDEOMEM_SIZE))
+	if (!MapViewOfFileEx(mapping, FILE_MAP_ALL_ACCESS, 0, 0, VW_VIDEOMEM_SIZE, vw_videomem + VW_VIDEOMEM_SIZE))
 		Quit("Couldn't map emulated video memory.");
 	
 #else
