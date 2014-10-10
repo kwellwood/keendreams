@@ -80,14 +80,14 @@ typedef enum ct_TYPES
 //  	FILE CHUNK HEADER FORMATS
 //
 
-struct COMPStruct
+struct __attribute__((__packed__)) COMPStruct
 {
 	uint32_t DecompLen;
 
 };
 
 
-struct CMP1Header
+struct __attribute__((__packed__)) CMP1Header
 {
 	uint16_t CompType;					// SEE: ct_TYPES above for list of pos.
 	uint32_t OrginalLen;			// Orginal FileLength of compressed Data.
@@ -102,7 +102,7 @@ struct CMP1Header
 //
 //---------------------------------------------------------------------------
 
-char WritePtr(long outfile, unsigned char data, unsigned PtrType);
-int ReadPtr(long infile, unsigned PtrType);
+char WritePtr(void *outfile, unsigned char data, unsigned PtrType);
+int ReadPtr(void *infile, unsigned PtrType);
 
 

@@ -43,7 +43,7 @@
 // NOTE : For PtrTypes DEST_MEM a ZERO (0) is always returned.
 //
 //---------------------------------------------------------------------------
-char WritePtr(long outfile, unsigned char data, unsigned PtrType)
+char WritePtr(void *outfile, unsigned char data, unsigned PtrType)
 {
 	int returnval = 0;
 
@@ -82,7 +82,7 @@ char WritePtr(long outfile, unsigned char data, unsigned PtrType)
 //
 //
 //---------------------------------------------------------------------------
-int ReadPtr(long infile, unsigned PtrType)
+int ReadPtr(void *infile, unsigned PtrType)
 {
 	int returnval = 0;
 
