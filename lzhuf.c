@@ -111,16 +111,16 @@ static void update(int c);
 static void DeleteNode(int p);  /* Deleting node from the tree */
 static void InsertNode(int r);  /* Inserting node to the tree */
 static void InitTree(void);  /* Initializing tree */
-static void Putcode(long outfile_ptr, int l, unsigned c,unsigned PtrTypes);		/* output c bits */
-static void EncodeChar(long outfile_ptr, unsigned c, unsigned PtrTypes);
-static void EncodePosition(long outfile_ptr, unsigned c, unsigned PtrTypes);
-static void EncodeEnd(long outfile_ptr,unsigned PtrTypes);
+static void Putcode(void *outfile_ptr, int l, unsigned c,unsigned PtrTypes);		/* output c bits */
+static void EncodeChar(void *outfile_ptr, unsigned c, unsigned PtrTypes);
+static void EncodePosition(void *outfile_ptr, unsigned c, unsigned PtrTypes);
+static void EncodeEnd(void *outfile_ptr,unsigned PtrTypes);
 
 
-static int GetByte(long infile_ptr, unsigned long *CompressLength, unsigned PtrTypes);
-static int GetBit(long infile_ptr, unsigned long *CompressLength, unsigned PtrTypes);	/* get one bit */
-static int DecodeChar(long infile_ptr, unsigned long *CompressLength, unsigned PtrTypes);
-static int DecodePosition(long infile_ptr,unsigned long *CompressLength, unsigned PtrTypes);
+static int GetByte(void *infile_ptr, unsigned long *CompressLength, unsigned PtrTypes);
+static int GetBit(void *infile_ptr, unsigned long *CompressLength, unsigned PtrTypes);	/* get one bit */
+static int DecodeChar(void *infile_ptr, unsigned long *CompressLength, unsigned PtrTypes);
+static int DecodePosition(void *infile_ptr,unsigned long *CompressLength, unsigned PtrTypes);
 
 
 
@@ -635,7 +635,7 @@ static void InitTree(void)  /* Initializing tree */
 //---------------------------------------------------------------------------
 //  Putcode
 //---------------------------------------------------------------------------
-static void Putcode(long outfile_ptr, int l, unsigned c,unsigned PtrTypes)		/* output c bits */
+static void Putcode(void *outfile_ptr, int l, unsigned c,unsigned PtrTypes)		/* output c bits */
 {
 	putbuf |= c >> putlen;
 
@@ -667,7 +667,7 @@ static void Putcode(long outfile_ptr, int l, unsigned c,unsigned PtrTypes)		/* o
 //---------------------------------------------------------------------------
 //  EncodeChar
 //---------------------------------------------------------------------------
-static void EncodeChar(long outfile_ptr, unsigned c, unsigned PtrTypes)
+static void EncodeChar(void *outfile_ptr, unsigned c, unsigned PtrTypes)
 {
 	unsigned i;
 	int j, k;
@@ -704,7 +704,7 @@ static void EncodeChar(long outfile_ptr, unsigned c, unsigned PtrTypes)
 //---------------------------------------------------------------------------
 // EncodePosition
 //---------------------------------------------------------------------------
-static void EncodePosition(long outfile_ptr, unsigned c, unsigned PtrTypes)
+static void EncodePosition(void *outfile_ptr, unsigned c, unsigned PtrTypes)
 {
 	unsigned i;
 
@@ -728,7 +728,7 @@ static void EncodePosition(long outfile_ptr, unsigned c, unsigned PtrTypes)
 //---------------------------------------------------------------------------
 // EncodeEnd
 //---------------------------------------------------------------------------
-static void EncodeEnd(long outfile_ptr,unsigned PtrTypes)
+static void EncodeEnd(void *outfile_ptr,unsigned PtrTypes)
 {
 	if (putlen)
 	{
@@ -756,7 +756,7 @@ static void EncodeEnd(long outfile_ptr,unsigned PtrTypes)
 //---------------------------------------------------------------------------
 // GetByte
 //---------------------------------------------------------------------------
-static int GetByte(long infile_ptr, unsigned long *CompressLength, unsigned PtrTypes)
+static int GetByte(void *infile_ptr, unsigned long *CompressLength, unsigned PtrTypes)
 {
 	uint16_t i;
 
@@ -788,7 +788,7 @@ static int GetByte(long infile_ptr, unsigned long *CompressLength, unsigned PtrT
 //---------------------------------------------------------------------------
 // GetBit
 //---------------------------------------------------------------------------
-static int GetBit(long infile_ptr, unsigned long *CompressLength, unsigned PtrTypes)	/* get one bit */
+static int GetBit(void *infile_ptr, unsigned long *CompressLength, unsigned PtrTypes)	/* get one bit */
 {
 	uint16_t i;
 
@@ -820,7 +820,7 @@ static int GetBit(long infile_ptr, unsigned long *CompressLength, unsigned PtrTy
 //---------------------------------------------------------------------------
 // DecodeChar
 //---------------------------------------------------------------------------
-static int DecodeChar(long infile_ptr, unsigned long *CompressLength, unsigned PtrTypes)
+static int DecodeChar(void *infile_ptr, unsigned long *CompressLength, unsigned PtrTypes)
 {
 	unsigned c;
 
@@ -850,7 +850,7 @@ static int DecodeChar(long infile_ptr, unsigned long *CompressLength, unsigned P
 //---------------------------------------------------------------------------
 // DecodePosition
 //---------------------------------------------------------------------------
-static int DecodePosition(long infile_ptr,unsigned long *CompressLength, unsigned PtrTypes)
+static int DecodePosition(void *infile_ptr,unsigned long *CompressLength, unsigned PtrTypes)
 {
 	uint16_t i, j, c;
 
