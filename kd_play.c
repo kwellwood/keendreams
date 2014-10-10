@@ -917,7 +917,7 @@ void ClipToEnds (objtype *ob)
 	maxmove = -abs(midxmoved) - bottommoved - 16;
 	map = mapsegs[1] +
 		mapbwidthtable[oldtilebottom-1]/2 + ob->tilemidx;
-	for (y=oldtilebottom-1 ; y<=ob->tilebottom ; y++,map+=mapwidth)
+	for (unsigned y=oldtilebottom-1 ; y<=ob->tilebottom ; y++,map+=mapwidth)
 	{
 		if (wall = tinf[NORTHWALL+*map])
 		{
@@ -935,7 +935,7 @@ void ClipToEnds (objtype *ob)
 	maxmove = abs(midxmoved) - topmoved + 16;
 	map = mapsegs[1] +
 		mapbwidthtable[oldtiletop+1]/2 + ob->tilemidx;
-	for (y=oldtiletop+1 ; y>=ob->tiletop ; y--,map-=mapwidth)
+	for (unsigned y=oldtiletop+1 ; y>=ob->tiletop ; y--,map-=mapwidth)
 	{
 		if (wall = tinf[SOUTHWALL+*map])
 		{
