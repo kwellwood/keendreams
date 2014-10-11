@@ -216,7 +216,7 @@ static	boolean	special;
 		INL_KeyHook();
 
 }
-#define INL_MapKey(sdl,in_sc) case sdl: return in_sc
+#define INL_MapKey(sdl,in_sc) case sdl: return (in_sc)
 
 ScanCode INL_SDLKToScanCode(int sdlKey)
 {
@@ -285,6 +285,17 @@ ScanCode INL_SDLKToScanCode(int sdlKey)
 		INL_MapKey(SDLK_x, sc_X);
 		INL_MapKey(SDLK_y, sc_Y);
 		INL_MapKey(SDLK_z, sc_Z);
+		
+		INL_MapKey(SDLK_0, sc_0);
+		INL_MapKey(SDLK_1, sc_1);
+		INL_MapKey(SDLK_2, sc_2);
+		INL_MapKey(SDLK_3, sc_3);
+		INL_MapKey(SDLK_4, sc_4);
+		INL_MapKey(SDLK_5, sc_5);
+		INL_MapKey(SDLK_6, sc_6);
+		INL_MapKey(SDLK_7, sc_7);
+		INL_MapKey(SDLK_8, sc_8);
+		INL_MapKey(SDLK_9, sc_9);
 		
 		INL_MapKey(SDLK_PAUSE, 0xe1);
 	default: return sc_Bad;

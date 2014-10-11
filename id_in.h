@@ -102,6 +102,17 @@ typedef	byte		ScanCode;
 #define	sc_Y			0x15
 #define	sc_Z			0x2c
 
+#define sc_1			0x02
+#define sc_2			0x03
+#define sc_3			0x04
+#define sc_4			0x05
+#define sc_5			0x06
+#define sc_6			0x07
+#define sc_7			0x08
+#define sc_8			0x09
+#define sc_9			0x0A
+#define sc_0			0x0B
+
 #define	key_None		0
 #define	key_Return		0x0d
 #define	key_Escape		0x1b
