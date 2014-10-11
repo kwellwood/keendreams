@@ -123,6 +123,23 @@ void VW_ScreenToMem(unsigned source, memptr dest, unsigned wide, unsigned height
 {
 }
 
+void VW_RawMemToScreen(memptr source, unsigned dest, unsigned wide, unsigned height)
+{
+	printf("VW_RawMemToScreen: %X -> %d (%d, %d)\n", source, dest, wide, height);
+	for (int y = 0; y < height; ++y)
+	{
+		memcpy(&vw_videomem[dest+y*linewidth], (byte*)source + (y*wide), wide);
+	}
+}
+
+void VW_RawScreenToMem(unsigned source, memptr dest, unsigned wide, unsigned height)
+{
+	printf("VW_RawScreenToMem: %d -> %X (%d, %d)\n", source, dest, wide, height);
+	for (int y = 0; y < height; ++y)
+	{
+		memcpy((byte*)dest + (y*wide), &vw_videomem[source+y*linewidth], wide);
+	}
+}
 
 void VWL_UpdateScreenBlocks()
 {

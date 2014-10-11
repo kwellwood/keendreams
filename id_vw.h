@@ -259,6 +259,8 @@ void VW_MaskBlock(memptr segm,unsigned ofs,unsigned dest,
 void VW_MemToScreen(memptr source,unsigned dest,unsigned width,unsigned height);
 void VW_ScreenToMem(unsigned source,memptr dest,unsigned width,unsigned height);
 void VW_ScreenToScreen(unsigned source,unsigned dest,unsigned width,unsigned height);
+void VW_RawMemToScreen(memptr source,unsigned dest,unsigned width,unsigned height);
+void VW_RawScreenToMem(unsigned source,memptr dest,unsigned width,unsigned height);
 
 
 //

@@ -670,7 +670,7 @@ void VWL_DrawCursor (void)
 	if (!cursorhw)
 	{
 		cursorspot = bufferofs + ylookup[cursory+pansy]+(cursorx+pansx)/SCREENXDIV;
-		VW_ScreenToMem(cursorspot,cursorsave,cursorwidth,cursorheight);
+		VW_RawScreenToMem(cursorspot,cursorsave,cursorwidth,cursorheight);
 		VWB_DrawSprite(cursorx,cursory,cursornumber);
 	}
 }
@@ -691,10 +691,10 @@ void VWL_EraseCursor (void)
 {
 	if (!cursorhw)
 	{
-		VW_MemToScreen(cursorsave,cursorspot,cursorwidth,cursorheight);
+		VW_RawMemToScreen(cursorsave,cursorspot,cursorwidth,cursorheight);
 		VW_MarkUpdateBlock ((cursorx+pansx)&SCREENXMASK,cursory+pansy,
-			( (cursorx+pansx)&SCREENXMASK)+cursorwidth*SCREENXDIV-1,
-			cursory+pansy+cursorheight-1);
+			( (cursorx+pansx)&SCREENXMASK)+cursorwidth,
+			cursory+pansy+cursorheight);
 	}
 }
 
@@ -1059,8 +1059,8 @@ void VWB_DrawPropString	 (char far *string)
 	x = px+pansx;
 	y = py+pansy;
 	VW_DrawPropString (string);
-//	VW_MarkUpdateBlock(0,0,320,200);
-	VW_MarkUpdateBlock(x,y,x+bufferwidth*8-1,y+bufferheight-1);
+	VW_MarkUpdateBlock(0,0,320,200);
+	//VW_MarkUpdateBlock(x,y,x+bufferwidth*8,y+bufferheight);
 }
 #endif
 
