@@ -417,7 +417,8 @@ void InitGame (void)
 	// XXX: Removed check that the user has at least 335KB of memory if
 	// EGA
 
-	US_TextScreen();
+	// XXX We don't do a text screen.
+	//US_TextScreen();
 
 	VW_Startup ();
 	RF_Startup ();
@@ -456,7 +457,7 @@ void InitGame (void)
 
 	fontcolor = WHITE;
 
-	US_FinishTextScreen();
+	//US_FinishTextScreen();
 
 	VW_SetScreenMode (GRMODE);
 	VW_ClearVideo (BLACK);
