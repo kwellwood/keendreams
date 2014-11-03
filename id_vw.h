@@ -155,14 +155,6 @@ typedef struct __attribute__((__packed__))
 		shifts;
 } spritetabletype;
 
-typedef	struct __attribute__((__packed__))
-{
-	uint16_t	sourceoffset[MAXSHIFTS];
-	uint16_t	planesize[MAXSHIFTS];
-	uint16_t	width[MAXSHIFTS];
-	byte		data[];
-} spritetype;		// the memptr for each sprite points to this
-
 typedef struct __attribute__((__packed__))
 {
 	int16_t width,height;
@@ -261,6 +253,7 @@ void VW_ScreenToMem(unsigned source,memptr dest,unsigned width,unsigned height);
 void VW_ScreenToScreen(unsigned source,unsigned dest,unsigned width,unsigned height);
 void VW_RawMemToScreen(memptr source,unsigned dest,unsigned width,unsigned height);
 void VW_RawScreenToMem(unsigned source,memptr dest,unsigned width,unsigned height);
+void VW_RawBlitToScreen(memptr source, unsigned dest, unsigned wide, unsigned height);
 
 
 //
@@ -371,8 +364,11 @@ void VW_UnmaskedToPAL8(void *src,void *dest, int x, int y, int pitch, int w, int
 void VW_UnmaskedSubRectToPAL8(void *src,void *dest, int x, int y, int pitch, int w, int h, int planesize, int planepitch);
 void VW_MaskedToRGBA(void *src,void *dest, int x, int y, int pitch, int w, int h);
 void VW_MaskedToPAL8(void *src,void *dest, int x, int y, int pitch, int w, int h);
+void VW_MaskedBlitToPAL8(void *src,void *dest, int x, int y, int pitch, int w, int h);
 void VW_MaskedBlitWPlaneSizeToPAL8(void *src,void *dest, int x, int y, int pitch, int w, int h, int planesize);
 void VW_1bppXorWithPAL8(void *src,void *dest, int x, int y, int pitch, int w, int h, int colour);
+
+void VW_PAL8ScaleToRGBA(void *src,void *dest, int xscale, int yscale, int pitch, int w, int h);
 
 //===========================================================================
 
@@ -383,6 +379,7 @@ void VW_1bppXorWithPAL8(void *src,void *dest, int x, int y, int pitch, int w, in
 void VW_GL_Init();
 void VW_GL_UpdateLineWidth();
 void VW_GL_UpdateGLBuffer();
+void VW_GL_GetViewport(int *x, int *y, int *w, int *h);
 void VW_GL_Present();
 
 //===========================================================================

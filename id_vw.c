@@ -462,11 +462,9 @@ void VW_DrawMPic(unsigned x, unsigned y, unsigned chunknum)
 void VW_DrawSprite(int x, int y, unsigned chunknum)
 {
 	spritetabletype far *spr;
-	spritetype _seg	*block;
 	unsigned	dest,shift;
 
 	spr = &spritetable[chunknum-STARTSPRITES];
-	block = (spritetype *)grsegs[chunknum];
 
 	y+=spr->orgy>>G_P_SHIFT;
 	x+=spr->orgx>>G_P_SHIFT;
@@ -484,8 +482,8 @@ void VW_DrawSprite(int x, int y, unsigned chunknum)
 	else
 		dest += (x+1)/SCREENXDIV;
 
-	VW_MaskBlock (block,block->sourceoffset[shift],dest,
-		block->width[shift],spr->height,block->planesize[shift]);
+	VW_RawBlitToScreen (grsegs[chunknum],dest,
+		spr->width*8,spr->height);
 }
 
 #endif
@@ -803,7 +801,7 @@ void VW_SetCursor (int spritenum)
 	{
 		SDL_Surface *mouseSurface = SDL_CreateRGBSurface(0, cursorwidth*cursorscalex, cursorheight*cursorscaley, 32, 0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000);
 		SDL_LockSurface(mouseSurface);
-		VW_MaskedScaleToRGBA(((spritetype*)(grsegs[cursornumber]))->data, mouseSurface->pixels, cursorscalex, cursorscaley, mouseSurface->pitch, cursorwidth, cursorheight);
+		VW_PAL8ScaleToRGBA(((grsegs[cursornumber])), mouseSurface->pixels, cursorscalex, cursorscaley, mouseSurface->pitch, cursorwidth, cursorheight);
 		SDL_UnlockSurface(mouseSurface);
 		SDL_Cursor *mouseCursor = SDL_CreateColorCursor(mouseSurface, spritetable[cursornumber-STARTSPRITES].orgx*cursorscalex, spritetable[cursornumber-STARTSPRITES].orgy*cursorscaley);
 		SDL_SetCursor(mouseCursor);
@@ -1080,14 +1078,12 @@ void VWB_DrawMPropString (char far *string)
 void VWB_DrawSprite(int x, int y, int chunknum)
 {
 	spritetabletype far *spr;
-	spritetype _seg	*block;
 	unsigned	dest,shift,width,height;
 
 	x+=pansx;
 	y+=pansy;
 
 	spr = &spritetable[chunknum-STARTSPRITES];
-	block = (spritetype _seg *)grsegs[chunknum];
 
 	y+=spr->orgy>>G_P_SHIFT;
 	x+=spr->orgx>>G_P_SHIFT;
@@ -1106,13 +1102,13 @@ void VWB_DrawSprite(int x, int y, int chunknum)
 	else
 		dest += (x+1)/SCREENXDIV;
 
-	width = block->width[shift] * 8;
+	width = spr->width * 8;
 	height = spr->height;
 
 	if (VW_MarkUpdateBlock (x,y,(x)+width-1
 		,y+height-1))
-		VW_MaskBlock (block,block->sourceoffset[shift],dest,
-			width,height,block->planesize[shift]);
+		VW_RawBlitToScreen (grsegs[chunknum],dest,
+			width,height);
 }
 #endif
 

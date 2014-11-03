@@ -95,6 +95,32 @@ void VW_UnmaskedSubRectToPAL8(void *src,void *dest, int x, int y, int pitch, int
 }
 
 // This is used for the mouse cursor, if we're doing HW cursors.
+void VW_PAL8ScaleToRGBA(void *src,void *dest, int xscale, int yscale, int pitch, int w, int h)
+{
+	uint8_t *dstptr = (uint8_t*)dest;
+	uint8_t *srcptr = (uint8_t*)src;
+
+	for(int sy = 0; sy < h; ++sy)
+	{
+		for(int sx = 0; sx < w; ++sx)
+		{
+			int pixel = (srcptr[sy*w+sx]);
+
+			// ARGB LE output
+			for(int dy = 0; dy < yscale; ++dy)
+			{
+				for(int dx = 0; dx < xscale; ++dx)
+				{
+					size_t pixcoord = (sy*yscale+dy)*pitch+(sx*xscale+dx)*4;
+					dstptr[pixcoord+0] = VW_EGAPalette[pixel][2];
+					dstptr[pixcoord+1] = VW_EGAPalette[pixel][1];
+					dstptr[pixcoord+2] = VW_EGAPalette[pixel][0];
+					dstptr[pixcoord+3] = (pixel == 255)?0x00:0xFF;
+				}
+			}
+		}
+	}		
+}
 void VW_MaskedScaleToRGBA(void *src,void *dest, int xscale, int yscale, int pitch, int w, int h)
 {
 	uint8_t *dstptr = (uint8_t*)dest;
@@ -155,6 +181,8 @@ void VW_MaskedToPAL8(void *src,void *dest, int x, int y, int pitch, int w, int h
 
 			if(!(srcptr_a[plane_off] & plane_bit))
 				dstptr[(sy+y)*pitch+(sx+x)] = pixel;
+			else
+				dstptr[(sy+y)*pitch+(sx+x)] = 255;
 		}
 	}		
 }

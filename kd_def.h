@@ -22,7 +22,7 @@
 #include "soft.h"
 #include "sl_file.h"
 
-#define FRILLS	0			// Cut out frills for 360K - MIKE MAYNARD
+#define FRILLS	1			// Cut out frills for 360K - MIKE MAYNARD
 
 
 /*
@@ -137,7 +137,7 @@ typedef struct	objstruct
 struct BitMapHeader {
 	uint16_t w,h,x,y;
 	unsigned char	d,trans,comp,pad;
-};
+}__attribute__((__packed__));
 
 struct BitMap {
 	uint16_t Width;
@@ -145,21 +145,21 @@ struct BitMap {
 	uint16_t Depth;
 	uint16_t BytesPerRow;
 	char far *Planes[8];
-};
+}__attribute__((__packed__));
 
 struct Shape {
 	memptr Data;
 	uint32_t size;
 	uint16_t BPR;
 	struct BitMapHeader bmHdr;
-};
+}__attribute__((__packed__));
 
 typedef struct {
 	int handle;			// handle of file
 	memptr buffer;		// pointer to buffer
 	word offset;		// offset into buffer
 	word status;		// read/write status
-} BufferedIO;
+} __attribute__((__packed__)) BufferedIO;
 
 
 

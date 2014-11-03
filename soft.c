@@ -135,6 +135,7 @@ unsigned long BLoad(char *SourceFile, memptr *DstPtr)
 
 		if ((MM_TotalFree() < SrcLen) && (CompHeader.CompType))
 		{
+			printf("Using buffered IO\n");
 			if (!InitBufferedIO(handle,&lzwBIO))
 				Quit("No memory for buffered I/O.");
 
@@ -162,6 +163,7 @@ unsigned long BLoad(char *SourceFile, memptr *DstPtr)
 		else
 		{
 			CA_LoadFile(SourceFile,&SrcPtr);
+			printf("Loading completely.\n");
 			switch (CompHeader.CompType)
 			{
 				#if LZW_SUPPORT
@@ -244,6 +246,7 @@ int LoadLIBShape(char *SLIB_Filename, char *Filename,struct Shape *SHP)
 		SwapLong(&ChunkLen);
 		ChunkLen = (ChunkLen+1) & 0xFFFFFFFE;
 		printf("Chunk: %c%c%c%c, size %d (fileLen = %d)\n", *ptr, *(ptr+1), *(ptr+2), *(ptr+3), ChunkLen, FileLen);
+		printf("ptr val = %d", ptr - (byte*)IFFfile);
 
 		if (CHUNK("BMHD"))
 		{

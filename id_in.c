@@ -396,7 +396,7 @@ IN_GetJoyAbs(word joy,int *xp,int *yp)
 //		system.
 //
 ///////////////////////////////////////////////////////////////////////////
-char*
+const char*
 IN_GetJoyName(word joy)
 {
 	if (JoyController[joy])
@@ -551,7 +551,7 @@ IN_SetupJoy(word joy,word minx,word maxx,word miny,word maxy)
 static boolean
 INL_StartJoy(word joy)
 {
-	word x,y;
+	int x,y;
 	
 	if (joy >= SDL_NumJoysticks()) return false;
 	
@@ -992,7 +992,7 @@ ScanCode IN_WaitForKey(void)
 	while (SDL_WaitEvent(&event))
 	{
 		INL_HandleSDLEvent(&event);
-		if (!(result = LastScan)) break;
+		if ((result = LastScan)) break;
 		// Refresh the display to stop steam overlay hanging.
 		VW_GL_Present();
 	}

@@ -125,7 +125,6 @@ void VW_ScreenToMem(unsigned source, memptr dest, unsigned wide, unsigned height
 
 void VW_RawMemToScreen(memptr source, unsigned dest, unsigned wide, unsigned height)
 {
-	printf("VW_RawMemToScreen: %X -> %d (%d, %d)\n", source, dest, wide, height);
 	for (int y = 0; y < height; ++y)
 	{
 		memcpy(&vw_videomem[dest+y*linewidth], (byte*)source + (y*wide), wide);
@@ -134,10 +133,34 @@ void VW_RawMemToScreen(memptr source, unsigned dest, unsigned wide, unsigned hei
 
 void VW_RawScreenToMem(unsigned source, memptr dest, unsigned wide, unsigned height)
 {
-	printf("VW_RawScreenToMem: %d -> %X (%d, %d)\n", source, dest, wide, height);
 	for (int y = 0; y < height; ++y)
 	{
 		memcpy((byte*)dest + (y*wide), &vw_videomem[source+y*linewidth], wide);
+	}
+}
+
+void VW_RawBlitToScreen(memptr source, unsigned dest, unsigned wide, unsigned height)
+{
+	// I'm pretty horribly ashamed of this, but I did profile it and it was faster.
+	uint32_t *src = (uint32_t*)source;
+	uint32_t *dst = (uint32_t*)&vw_videomem[dest];
+	for (int y = 0; y < height; ++y)
+	{
+		for (int x = 0; x < wide/4; ++x)
+		{
+			uint32_t c = *src++;
+			if (c != 0xffffffff)
+			{
+				if ((c & 0xff) == 0xff) c = (c & 0xffffff00) | (*dst & 0xff);
+				if ((c & 0xff00) == 0xff00) c = (c & 0xffff00ff) | (*dst & 0xff00);
+				if ((c & 0xff0000) == 0xff0000) c = (c & 0xff00ffff) | (*dst & 0xff0000);
+				if ((c & 0xff000000) == 0xff000000) c = (c & 0x00ffffff) | (*dst & 0xff000000);
+				
+				*dst = c;
+			}
+			dst++;
+		}
+		dst += linewidth / 4 - wide / 4;
 	}
 }
 

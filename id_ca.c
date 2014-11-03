@@ -33,6 +33,12 @@ loaded into the data segment
 #include "id_heads.h"
 #pragma hdrstop
 
+#ifndef WIN32
+#include <unistd.h>
+#else
+#include <io.h>
+#endif
+
 /*
 =============================================================================
 
@@ -806,107 +812,6 @@ cachein:
 
 //===========================================================================
 
-#if GRMODE == EGAGR
-
-/*
-======================
-=
-= CAL_ShiftSprite
-=
-= Make a shifted (one byte wider) copy of a sprite into another area
-=
-======================
-*/
-
-unsigned	static	sheight,swidth;
-
-void CAL_ShiftSprite (unsigned segment,unsigned source,unsigned dest,
-	unsigned width, unsigned height, unsigned pixshift)
-{
-
-	sheight = height;		// because we are going to reassign bp
-	swidth = width;
-
-// bp = shift table, ds:bx = source, ds:di = dest
-
-//
-// table shift the mask
-//
-/*for (int maskrow = height; maskrow; maskrow--)
-{
-
-	for (int maskbyte = width; maskbyte; maskbyte--)
-	{
-		byte currentbyte = 255;// 0xff first byte
-		byte sourcebyte = *dest++;
-	}
-}*/
-// TODO: XXX: Either finish implementing this, or do the Omnispeak thing
-// and just emulate shifts in id_vw.
-/*
-domaskbyte:
-
-asm	mov	al,[bx]				// source
-asm	not	al
-asm	inc	bx					// next source byte
-asm	xor	ah,ah
-asm	shl	ax,1
-asm	mov	si,ax
-asm	mov	ax,[bp+si]			// table shift into two bytes
-asm	not	ax
-asm	and	[di],al				// and with first byte
-asm	inc	di
-asm	mov	[di],ah				// replace next byte
-
-asm	loop	domaskbyte
-
-asm	inc	di					// the last shifted byte has 1s in it
-asm	dec	dx
-asm	jnz	domaskrow
-
-//
-// table shift the data
-//
-asm	mov	dx,ss:[sheight]
-asm	shl	dx,1
-asm	shl	dx,1				// four planes of data
-
-dodatarow:
-
-asm	mov	BYTE PTR [di],0		// 0 first byte
-asm	mov	cx,ss:[swidth]
-
-dodatabyte:
-
-asm	mov	al,[bx]				// source
-asm	inc	bx					// next source byte
-asm	xor	ah,ah
-asm	shl	ax,1
-asm	mov	si,ax
-asm	mov	ax,[bp+si]			// table shift into two bytes
-asm	or	[di],al				// or with first byte
-asm	inc	di
-asm	mov	[di],ah				// replace next byte
-
-asm	loop	dodatabyte
-
-asm	inc	di					// the last shifted byte has 0s in it
-asm	dec	dx
-asm	jnz	dodatarow
-
-//
-// done
-//
-
-asm	mov	ax,ss				// restore data segment
-asm	mov	ds,ax
-*/
-}
-
-#endif
-
-//===========================================================================
-
 /*
 ======================
 =
@@ -923,7 +828,6 @@ void CAL_CacheSprite (int chunk, char  *compressed)
 	uint16_t shiftstarts[5];
 	uint16_t smallplane,bigplane,expanded;
 	spritetabletype  *spr;
-	spritetype  *dest;
 
 #if GRMODE == CGAGR
 //
@@ -951,80 +855,29 @@ void CAL_CacheSprite (int chunk, char  *compressed)
 // calculate sizes
 //
 	spr = &spritetable[chunk-STARTSPRITES];
-	smallplane = spr->width*spr->height;
-	bigplane = (spr->width+1)*spr->height;
 
-	shiftstarts[0] = MAXSHIFTS*6;	// start data after 3 unsigned tables
-	shiftstarts[1] = shiftstarts[0] + smallplane*5;	// 5 planes in a sprite
-	shiftstarts[2] = shiftstarts[1] + bigplane*5;
-	shiftstarts[3] = shiftstarts[2] + bigplane*5;
-	shiftstarts[4] = shiftstarts[3] + bigplane*5;	// nothing ever put here
-
-	expanded = shiftstarts[spr->shifts];
-	MM_GetPtr (&grsegs[chunk],expanded);
-	dest = (spritetype  *)grsegs[chunk];
+	expanded = spr->width * spr->height;
+	memptr temp;
+	MM_GetPtr (&temp, expanded * 5);
+	MM_GetPtr (&grsegs[chunk],expanded * 8);
 
 //
 // expand the unshifted shape
 //
-	CAL_HuffExpand (compressed, &dest->data[0],smallplane*5,grhuffman);
+	CAL_HuffExpand (compressed, temp, expanded * 5, grhuffman);
 
 //
-// make the shifts!
+// convert to PAL8/VGA to cut down on conversion time later
 //
+	VW_MaskedToPAL8(temp, grsegs[chunk], 0, 0, spr->width * 8, spr->width * 8, spr->height);
+	MM_FreePtr(&temp);
 	switch (spr->shifts)
 	{
 	case	1:
-		for (i=0;i<4;i++)
-		{
-			dest->sourceoffset[i] = shiftstarts[0];
-			dest->planesize[i] = smallplane;
-			dest->width[i] = spr->width;
-		}
-		break;
-
 	case	2:
-		for (i=0;i<2;i++)
-		{
-			dest->sourceoffset[i] = shiftstarts[0];
-			dest->planesize[i] = smallplane;
-			dest->width[i] = spr->width;
-		}
-		for (i=2;i<4;i++)
-		{
-			dest->sourceoffset[i] = shiftstarts[1];
-			dest->planesize[i] = bigplane;
-			dest->width[i] = spr->width+1;
-		}
-		CAL_ShiftSprite ((unsigned)grsegs[chunk],dest->sourceoffset[0],
-			dest->sourceoffset[2],spr->width,spr->height,4);
-		break;
-
+	case	3:
 	case	4:
-		dest->sourceoffset[0] = shiftstarts[0];
-		dest->planesize[0] = smallplane;
-		dest->width[0] = spr->width;
-
-		dest->sourceoffset[1] = shiftstarts[1];
-		dest->planesize[1] = bigplane;
-		dest->width[1] = spr->width+1;
-		CAL_ShiftSprite ((unsigned)grsegs[chunk],dest->sourceoffset[0],
-			dest->sourceoffset[1],spr->width,spr->height,2);
-
-		dest->sourceoffset[2] = shiftstarts[2];
-		dest->planesize[2] = bigplane;
-		dest->width[2] = spr->width+1;
-		CAL_ShiftSprite ((unsigned)grsegs[chunk],dest->sourceoffset[0],
-			dest->sourceoffset[2],spr->width,spr->height,4);
-
-		dest->sourceoffset[3] = shiftstarts[3];
-		dest->planesize[3] = bigplane;
-		dest->width[3] = spr->width+1;
-		CAL_ShiftSprite ((unsigned)grsegs[chunk],dest->sourceoffset[0],
-			dest->sourceoffset[3],spr->width,spr->height,6);
-
 		break;
-
 	default:
 		Quit ("CAL_CacheSprite: Bad shifts number!");
 	}

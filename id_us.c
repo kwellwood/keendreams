@@ -47,6 +47,12 @@
 
 #include "id_heads.h"
 
+#ifndef WIN32
+#include <unistd.h>
+#else
+#include <io.h>
+#endif
+
 #define CTL_M_ADLIBUPPIC	CTL_S_ADLIBUPPIC
 #define CTL_M_ADLIBDNPIC	CTL_S_ADLIBDNPIC
 
@@ -228,18 +234,17 @@ USL_ReadConfig(void)
 static void
 USL_WriteConfig(void)
 {
-	int	file;
+	FILE	*file;
 
-	file = open("KDREAMS.CFG", O_CREAT | O_WRONLY,
-				S_IREAD | S_IWRITE | S_IFREG);
-	if (file != -1)
+	file = fopen("KDREAMS.CFG", "wb");
+	if (file)
 	{
-		write(file,Scores,sizeof(HighScore) * MaxScores);
-		write(file,&SoundMode,sizeof(SoundMode));
-		write(file,&MusicMode,sizeof(MusicMode));
-		write(file,&(Controls[0]),sizeof(Controls[0]));
-		write(file,&(KbdDefs[0]),sizeof(KbdDefs[0]));
-		close(file);
+		fwrite(Scores,sizeof(HighScore), MaxScores, file);
+		fwrite(&SoundMode,sizeof(SoundMode), 1, file);
+		fwrite(&MusicMode,sizeof(MusicMode), 1, file);
+		fwrite(&(Controls[0]),sizeof(Controls[0]),1, file);
+		fwrite(&(KbdDefs[0]),sizeof(KbdDefs[0]),1, file);
+		fclose(file);
 	}
 }
 
@@ -1400,7 +1405,7 @@ USL_HandleError(int num)
 	else if (num == ENOMEM)
 		strcat(buf,"Disk is Full");
 	else
-		strcat(buf,sys_errlist[num]);
+		strcat(buf,strerror(num));
 
 	VW_HideCursor();
 
@@ -2064,8 +2069,8 @@ static boolean
 USL_CtlCJoyButtonCustom(UserCall call,word i,word n)
 {
 	boolean Done = false;
-	word	joy,
-			minx,maxx,
+	word	joy;
+	int		minx,maxx,
 			miny,maxy;
 
 	i++,n++;	// Shut the compiler up
@@ -2223,7 +2228,7 @@ USL_FormatHelp(char far *text,long len)
 //
 ///////////////////////////////////////////////////////////////////////////
 static void
-USL_DrawHelp(char far *text,word start,word end,word line,word h,word far *lp)
+USL_DrawHelp(char far *text,word start,word end,word line,word h,uintptr_t *lp)
 {
 	px = WindowX + 4;
 	py = WindowY + (line * h);

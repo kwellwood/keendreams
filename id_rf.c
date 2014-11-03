@@ -1227,7 +1227,6 @@ void RF_PlaceSprite (void **user,unsigned globalx,unsigned globaly,
 {
 	spritelisttype	register *sprite,*next;
 	spritetabletype far *spr;
-	spritetype	*block;
 	unsigned	shift,pixx;
 
 	if (!spritenumber)
@@ -1288,7 +1287,6 @@ linknewspot:
 // write the new info to the sprite
 //
 	spr = &spritetable[spritenumber-STARTSPRITES];
-	block = (spritetype _seg *)grsegs[spritenumber];
 
 	globaly+=spr->orgy;
 	globalx+=spr->orgx;
@@ -1299,11 +1297,11 @@ linknewspot:
 	int shiftMask = ~(4-spr->shifts) & ~1;
 	sprite->screenx = (globalx >> (G_SY_SHIFT)) & shiftMask;
 	sprite->screeny = globaly >> G_SY_SHIFT;
-	sprite->width = block->width[shift] * 8;
+	sprite->width = spr->width * 8;
 	sprite->height = spr->height;
 	sprite->grseg = spritenumber;
-	sprite->sourceofs = block->sourceoffset[shift];
-	sprite->planesize = block->planesize[shift];
+	sprite->sourceofs = 0;
+	sprite->planesize = 0;
 	sprite->draw = draw;
 	sprite->priority = priority;
 	sprite->tilex = sprite->screenx >> SX_T_SHIFT;
@@ -1598,8 +1596,8 @@ redraw:
 			switch (sprite->draw)
 			{
 			case spritedraw:
-				VW_MaskBlock(grsegs[sprite->grseg], sourceofs,
-					dest,sprite->width,height,sprite->planesize);
+				VW_RawBlitToScreen (grsegs[sprite->grseg] + sourceofs*8,
+					dest,sprite->width,height);
 				break;
 
 			case maskdraw:
