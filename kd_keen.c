@@ -111,7 +111,7 @@ void ScoreReact (objtype *ob);
 
 void MemDrawChar (int char8,byte far *dest,unsigned width,unsigned planesize);
 
-statetype s_score	= {NULL,NULL,think,false,
+statetype s_score	= {0,0,think,false,
 	false,0, 0,0, ScoreThink , NULL, ScoreReact, NULL};
 
 
@@ -139,28 +139,28 @@ void	FixScoreBox (void)
 {
 	unsigned	width, planesize;
 	unsigned smallplane,bigplane;
-	spritetype	_seg	*block;
+	spritetabletype		*spr;
 	byte	far	*dest;
 
 // draw boobus bomb if on level 15, else flower power
-	block = (spritetype _seg *)grsegs[SCOREBOXSPR];
-	width = block->width[0];
-	planesize = block->planesize[0];
-	dest = (byte far *)grsegs[SCOREBOXSPR]+block->sourceoffset[0]
-		+ planesize + width*16 + 4;
+	spr = &spritetable[SCOREBOXSPR - STARTSPRITES];
+	width = spr->width * 8;
+	planesize = spr->width * 8 * spr->height;
+	dest = (byte far *)grsegs[SCOREBOXSPR]
+		+ width*16 + 4*8;
 	if (mapon == 15)
 	{
 		MemDrawChar (20,dest,width,planesize);
-		MemDrawChar (21,dest+1,width,planesize);
+		MemDrawChar (21,dest+8,width,planesize);
 		MemDrawChar (22,dest+width*8,width,planesize);
-		MemDrawChar (23,dest+width*8+1,width,planesize);
+		MemDrawChar (23,dest+width*8+8,width,planesize);
 	}
 	else
 	{
 		MemDrawChar (28,dest,width,planesize);
-		MemDrawChar (29,dest+1,width,planesize);
+		MemDrawChar (29,dest+8,width,planesize);
 		MemDrawChar (30,dest+width*8,width,planesize);
-		MemDrawChar (31,dest+width*8+1,width,planesize);
+		MemDrawChar (31,dest+width*8+8,width,planesize);
 	}
 
 }
@@ -180,7 +180,7 @@ void MemDrawChar (int char8,byte *dest,unsigned width,unsigned planesize)
 {
 	// For each plane, draw 8*8 character (starttile8+char8) with plane pitch width and plane
 	// size planesize
-	for (int plane = 0; plane < 4; ++plane)
+	/*for (int plane = 0; plane < 4; ++plane)
 	{
 		for (int y = 0; y < 8; ++y)
 		{
@@ -189,7 +189,8 @@ void MemDrawChar (int char8,byte *dest,unsigned width,unsigned planesize)
 		}
 		dest -= 8*width;
 		dest += planesize;
-	}
+	}*/
+	VW_UnmaskedSubRectToPAL8(&(((byte*)(grsegs[STARTTILE8]))[char8*32]), dest, 0, 0, width, 8, 8, 8, 1);
 
 }
 #endif
@@ -215,19 +216,9 @@ void MemDrawChar (int char8,byte far *dest,unsigned width,unsigned planesize)
 void ShiftScore (void)
 {
 	spritetabletype *spr;
-	spritetype *dest;
 
 	spr = &spritetable[SCOREBOXSPR-STARTSPRITES];
-	dest = (spritetype *)grsegs[SCOREBOXSPR];
 
-	CAL_ShiftSprite (FP_SEG(dest),dest->sourceoffset[0],
-		dest->sourceoffset[1],spr->width,spr->height,2);
-
-	CAL_ShiftSprite (FP_SEG(dest),dest->sourceoffset[0],
-		dest->sourceoffset[2],spr->width,spr->height,4);
-
-	CAL_ShiftSprite (FP_SEG(dest),dest->sourceoffset[0],
-		dest->sourceoffset[3],spr->width,spr->height,6);
 }
 #endif
 
@@ -242,33 +233,33 @@ void ShiftScore (void)
 void ScoreThink (objtype *ob)
 {
 	char		str[10],*ch;
-	spritetype	_seg	*block;
+	spritetabletype *spr;
 	byte		far *dest;
 	unsigned	i, length, width, planesize, number;
 
 //
 // score changed
-//
+//	
+	spr = &spritetable[SCOREBOXSPR - STARTSPRITES];
 	if ((gamestate.score>>16) != ob->temp1
 		|| (unsigned)gamestate.score != ob->temp2 )
 	{
-		block = (spritetype _seg *)grsegs[SCOREBOXSPR];
-		width = block->width[0];
-		planesize = block->planesize[0];
-		dest = (byte far *)grsegs[SCOREBOXSPR]+block->sourceoffset[0]
-			+ planesize + width*4 + 2;
+		width = spr->width * 8;
+		planesize = spr->width * 8 * spr->height;
+		dest = (byte far *)grsegs[SCOREBOXSPR]
+			+ width*4 + 1*8;
 
 		US_LToA (gamestate.score,str);
 
 		// erase leading spaces
 		length = strlen(str);
 		for (i=6;i>length;i--)
-			MemDrawChar (0,dest++,width,planesize);
+			MemDrawChar (0,dest += 8,width,planesize);
 
 		// draw digits
 		ch = str;
 		while (*ch)
-			MemDrawChar (*ch++ - '0'+1,dest++,width,planesize);
+			MemDrawChar (*ch++ - '0'+1, dest += 8,width,planesize);
 
 #if GRMODE == EGAGR
 		ShiftScore ();
@@ -287,11 +278,10 @@ void ScoreThink (objtype *ob)
 		number = gamestate.flowerpowers;
 	if (number != ob->temp3)
 	{
-		block = (spritetype _seg *)grsegs[SCOREBOXSPR];
-		width = block->width[0];
-		planesize = block->planesize[0];
-		dest = (byte far *)grsegs[SCOREBOXSPR]+block->sourceoffset[0]
-			+ planesize + width*20 + 6;
+		width = spr->width * 8;
+		planesize = spr->width * 8 * spr->height;
+		dest = (byte far *)grsegs[SCOREBOXSPR]
+			+ width*20 + 5*8;
 
 		if (number > 99)
 			strcpy (str,"99");
@@ -302,12 +292,12 @@ void ScoreThink (objtype *ob)
 		// erase leading spaces
 		length = strlen(str);
 		for (i=2;i>length;i--)
-			MemDrawChar (0,dest++,width,planesize);
+			MemDrawChar (0,dest += 8,width,planesize);
 
 		// draw digits
 		ch = str;
 		while (*ch)
-			MemDrawChar (*ch++ - '0'+1,dest++,width,planesize);
+			MemDrawChar (*ch++ - '0'+1,dest += 8,width,planesize);
 
 #if GRMODE == EGAGR
 		ShiftScore ();
@@ -321,11 +311,10 @@ void ScoreThink (objtype *ob)
 //
 	if (gamestate.lives != ob->temp4)
 	{
-		block = (spritetype _seg *)grsegs[SCOREBOXSPR];
-		width = block->width[0];
-		planesize = block->planesize[0];
-		dest = (byte far *)grsegs[SCOREBOXSPR]+block->sourceoffset[0]
-			+ planesize + width*20 + 2;
+		width = spr->width * 8;
+		planesize = spr->width * spr->height * 8;
+		dest = grsegs[SCOREBOXSPR]
+			+ width*20 + 2*8;
 
 		if (gamestate.lives>9)
 			MemDrawChar ('9' - '0'+1,dest,width,planesize);
@@ -831,7 +820,7 @@ extern	statetype s_worldwalk;
 
 #pragma warn -sus
 
-statetype s_worldkeen	= {NULL,NULL,stepthink,false,
+statetype s_worldkeen	= {0,0,stepthink,false,
 	false,360, 0,0, KeenWorldThink, NULL, DrawReact, &s_worldkeenwave1};
 
 statetype s_worldkeenwave1= {WORLDKEENWAVE1SPR,WORLDKEENWAVE1SPR,stepthink,false,
@@ -853,7 +842,7 @@ statetype s_worldkeensleep1	= {WORLDKEENSLEEP1SPR,WORLDKEENSLEEP1SPR,stepthink,f
 statetype s_worldkeensleep2	= {WORLDKEENSLEEP2SPR,WORLDKEENSLEEP2SPR,stepthink,false,
 	false,90, 0,0, KeenWorldThink, NULL, DrawReact, &s_worldkeensleep2};
 
-statetype s_worldwalk	= {NULL,NULL,slide,false,
+statetype s_worldwalk	= {0,0,slide,false,
 	false,4, 16,16, KeenWorldWalk, NULL, DrawReact, &s_worldwalk};
 
 #pragma warn +sus
@@ -1559,7 +1548,7 @@ void KeenGoSleepThink (objtype *ob)
 	new->ydir = -1;
 	NewState (new,&s_keenzee1);
 
-	ob->temp1 = (int)new;				// so they can be removed later
+	ob->temp1 = (intptr_t)new;				// so they can be removed later
 }
 
 
@@ -1577,7 +1566,7 @@ void KeenSleepThink (objtype *ob)
 {
 	if (c.dir != dir_None || c.button0 || c.button1)
 	{
-		if (ob->temp1 != (unsigned)&dummyobj)
+		if (ob->temp1 != (intptr_t)&dummyobj)
 			RemoveObj ((objtype *)ob->temp1);	// remove the zees
 		ob->temp1 = ob->temp2 = 0;			// not paused any more
 		ob->state = &s_keengetup;

@@ -90,13 +90,13 @@ void DebugMemory (void)
 
 	US_CPrint ("Memory Usage");
 	US_CPrint ("------------");
-	// XXX US_Print ("Total     :");
-	// XXX US_PrintUnsigned (mminfo.mainmem/1024);
-	US_Print ("k\nFree      :");
-	US_PrintUnsigned (MM_UnusedMemory()/1024);
-	US_Print ("k\nWith purge:");
-	US_PrintUnsigned (MM_TotalFree()/1024);
-	US_Print ("k\n");
+	US_Print ("Total     :");
+	US_PrintUnsigned (MM_SystemMegs());
+	US_Print ("m\nFree      :");
+	US_PrintUnsigned (MM_UnusedMemory());
+	US_Print ("m\nWith purge:");
+	US_PrintUnsigned (MM_TotalFree());
+	US_Print ("m\n");
 	VW_UpdateScreen();
 	IN_Ack ();
 #if GRMODE == EGAGR
@@ -117,8 +117,7 @@ void DebugMemory (void)
 void TestSprites(void)
 {
 	int hx,hy,sprite,oldsprite,bottomy,topx,shift;
-	spritetabletype far *spr;
-	spritetype _seg	*block;
+	spritetabletype *spr;
 	unsigned	mem,scan;
 
 
@@ -148,7 +147,6 @@ void TestSprites(void)
 			sprite = STARTSPRITES;
 
 		spr = &spritetable[sprite-STARTSPRITES];
-		block = (spritetype _seg *)grsegs[sprite];
 
 		VWB_Bar (hx,hy,TEXTWIDTH,bottomy-hy,WHITE);
 
@@ -164,13 +162,13 @@ void TestSprites(void)
 		US_PrintSigned (spr->xh);US_Print ("\n");PrintX=hx;
 		US_PrintSigned (spr->yh);US_Print ("\n");PrintX=hx;
 		US_PrintSigned (spr->shifts);US_Print ("\n");PrintX=hx;
-		if (!block)
+		if (!grsegs[sprite])
 		{
 			US_Print ("-----");
 		}
 		else
 		{
-			mem = block->sourceoffset[3]+5*block->planesize[3];
+			mem = spr->width * spr->height;
 			mem = (mem+15)&(~15);		// round to paragraphs
 			US_PrintUnsigned (mem);
 		}
@@ -182,7 +180,7 @@ void TestSprites(void)
 		// draw the current shift, then wait for key
 		//
 			VWB_Bar(topx,hy,DISPWIDTH,bottomy-hy,WHITE);
-			if (block)
+			if (grsegs[sprite])
 			{
 				PrintX = topx;
 				PrintY = hy;

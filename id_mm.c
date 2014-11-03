@@ -29,6 +29,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "id_heads.h"
 
 #include <stdlib.h>
+#include <SDL2/SDL.h>
 
 memptr bufferseg; // Misc buffer
 
@@ -262,11 +263,15 @@ void MM_BombOnError(boolean bomb)
 
 long MM_UnusedMemory()
 {
-	return 0;
+	return MM_SystemMegs() - (mm_memused / (1024*1024));
 }
 long MM_TotalFree()
 {
-	return 0;
+	return MM_SystemMegs() * 1024*1024;
+}
+long MM_SystemMegs()
+{
+	return SDL_GetSystemRAM();
 }
 
 //NOTE: Keen/Wolf3d have MML_UseSpace. This is incompatible with our use of the

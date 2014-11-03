@@ -19,7 +19,7 @@
 #include "kd_def.h"
 #include <SDL2/SDL.h>
 
-#define BIO_BUFFER_LEN	(512)
+#define BIO_BUFFER_LEN	(8192)
 
 
 

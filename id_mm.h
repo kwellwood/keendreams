@@ -73,6 +73,6 @@ void MM_ShowMemory (void);
 
 long MM_UnusedMemory (void);
 long MM_TotalFree (void);
-
+long MM_SystemMegs (void);
 
 #endif

@@ -37,8 +37,8 @@
 //#define MAPHEADERLINKED
 //#define GRHEADERLINKED
 //#define AUDIOHEADERLINKED
-#define MAPSCOMPRESSED
-#define AUDIOCOMPRESSED
+//#define MAPSCOMPRESSED
+//#define AUDIOCOMPRESSED
 
 #define NUMMAPS	30
 
@@ -122,4 +122,5 @@ void CA_CacheGrChunk (int chunk);
 void CA_CacheMap (int mapnum);
 
 void CA_CacheMarks (char *title, boolean cachedownlevel);
+off_t CAL_filelength(int fd);
 

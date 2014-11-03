@@ -180,6 +180,7 @@ extern	boolean	SD_MusicPlaying(void),
 				SD_SetSoundMode(SDMode mode),
 				SD_SetMusicMode(SMMode mode);
 extern	word	SD_SoundPlaying(void);
+uint32_t SD_GetTimeCount(void);
 
 #ifdef	_MUSE_	// MUSE Goes directly to the lower level routines
 extern	void	SDL_PCPlaySound(PCSound far *sound),

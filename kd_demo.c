@@ -213,7 +213,7 @@ SaveGame(int file)
 // leave a word at start of compressed data for compressed length
 //
 		compressed = CA_RLEWCompress ((unsigned huge *)mapsegs[i]
-			,expanded,((unsigned huge *)bigbuffer)+1,RLETAG);
+			,expanded,((unsigned *)bigbuffer)+1,RLETAG);
 
 		*(unsigned huge *)bigbuffer = compressed;
 

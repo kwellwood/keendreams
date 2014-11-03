@@ -930,7 +930,7 @@ long lzhDecompress(void  *infile, void  *outfile, unsigned long OrginalLength, u
 		}
 		else
 		{
-			i = (r - DecodePosition((long)&infile,&CompressLength,PtrTypes) - 1) & (N - 1);
+			i = (r - DecodePosition(&infile,&CompressLength,PtrTypes) - 1) & (N - 1);
 			j = c - 255 + THRESHOLD;
 
 			for (k = 0; k < j; k++)
