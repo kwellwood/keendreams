@@ -1559,6 +1559,8 @@ USL_DoHit(word hiti,word hitn)
 			break;
 		case uii_KeyCap:
 			break;
+		case uii_Bad:
+			Quit("Got a bad UI Item");
 		}
 	}
 }
@@ -1897,6 +1899,8 @@ USL_FindRect(Rect r,Motion xd,Motion yd)
 			break;
 		case motion_Right:
 			i1 = 5,i2 = 8,i3 = 2;
+			break;
+		case motion_None:
 			break;
 		}
 		break;
@@ -3026,7 +3030,7 @@ USL_HitHotKey(int i,int n)
 {
 	UserItem	*ip;
 
-	if (ip = TheItems[++i])
+	if ((ip = TheItems[++i]) != NULL)
 	{
 		if ((n = USL_FindDown(TheItems[i])) == -1)
 			n = 0;
@@ -3491,7 +3495,7 @@ US_ControlPanel(void)
 void
 US_DisplayHighScores(int which)
 {
-	unsigned char		buffer[16],*str;
+	char		buffer[16],*str;
 	word		i,
 				w,h,
 				x,y;

@@ -254,7 +254,7 @@ void VW_SetDefaultColors(void)
 {
 #if GRMODE == EGAGR
 	colors[3][16] = bordercolor;
-	//&colors[3] is the pal
+	VW_GL_SetEGAPalette(colors[3]);
 	screenfaded = false;
 #endif
 }
@@ -267,9 +267,9 @@ void VW_FadeOut(void)
 
 	for (i=3;i>=0;i--)
 	{
-	  colors[i][16] = bordercolor;
-	  // XXX: geninterrupt(0x10);
-	  VW_WaitVBL(6);
+		colors[i][16] = bordercolor;
+		VW_GL_SetEGAPalette(colors[i]);
+		VW_WaitVBL(6);
 	}
 	screenfaded = true;
 #endif
@@ -283,9 +283,9 @@ void VW_FadeIn(void)
 
 	for (i=0;i<4;i++)
 	{
-	  colors[i][16] = bordercolor;
-	  // XXX: Do interupt
-	  VW_WaitVBL(6);
+		colors[i][16] = bordercolor;
+		VW_GL_SetEGAPalette(colors[i]);
+		VW_WaitVBL(6);
 	}
 	screenfaded = false;
 #endif
@@ -298,9 +298,9 @@ void VW_FadeUp(void)
 
 	for (i=3;i<6;i++)
 	{
-	  colors[i][16] = bordercolor;
-	  //update pal
-	  VW_WaitVBL(6);
+		colors[i][16] = bordercolor;
+		VW_GL_SetEGAPalette(colors[i]);
+		VW_WaitVBL(6);
 	}
 	screenfaded = true;
 #endif
@@ -313,9 +313,9 @@ void VW_FadeDown(void)
 
 	for (i=5;i>2;i--)
 	{
-	  colors[i][16] = bordercolor;
-	  //update pal
-	  VW_WaitVBL(6);
+		colors[i][16] = bordercolor;
+		VW_GL_SetEGAPalette(colors[i]);
+		VW_WaitVBL(6);
 	}
 	screenfaded = false;
 #endif

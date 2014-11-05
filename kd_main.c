@@ -69,7 +69,7 @@ int		DebugKeys (void);
 void	ShutdownId (void);
 void	Quit (char *error);
 void	InitGame (void);
-void	main (int argc, char **argv);
+int	main (int argc, char **argv);
 
 //===========================================================================
 
@@ -473,7 +473,7 @@ void InitGame (void)
 ==========================
 */
 
-void main (int argc, char **argv)
+int main (int argc, char **argv)
 {
 	short i;
 	_argc = argc;
@@ -514,5 +514,6 @@ void main (int argc, char **argv)
 
 	DemoLoop();					// DemoLoop calls Quit when everything is done
 	Quit("Demo loop exited???");
+	return 0;
 }
 

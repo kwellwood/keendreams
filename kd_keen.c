@@ -608,6 +608,9 @@ void	PowerContact (objtype *ob, objtype *hit)
 		SD_PlaySound (BOMBBOOMSND);
 		ChangeState (ob,&s_bombexplode);
 		break;
+	default:
+		// 'nothing', 'keenobj', 'powerobj', 'doorobj', 'shotobj', 'inertobj'
+		break;
 	}
 }
 
@@ -1882,6 +1885,8 @@ void	KeenPoleThink		(objtype *ob)
 		ob->ydir = 1;
 		KeenDropThink (ob);
 		return;
+	default:
+		break;
 	}
 
 	if (c.xaxis)
@@ -1941,6 +1946,8 @@ void	KeenClimbThink		(objtype *ob)
 		ob->ydir = 1;
 		KeenDropThink (ob);
 		break;
+	default:
+		break;
 	}
 
 	PoleActions (ob);
@@ -1984,6 +1991,8 @@ void	KeenDropThink		(objtype *ob)
 	case 0:
 		ob->state = &s_keenpole;
 		ob->ydir = 0;
+		break;
+	default:
 		break;
 	}
 
@@ -2256,7 +2265,9 @@ void	KeenContact (objtype *ob, objtype *hit)
 	case	shotobj:
 			KillKeen ();
 		break;
-
+	default:
+		// Everything else has no effect on keen.
+		break;
 	}
 }
 

@@ -919,7 +919,7 @@ void ClipToEnds (objtype *ob)
 		mapbwidthtable[oldtilebottom-1]/2 + ob->tilemidx;
 	for (unsigned y=oldtilebottom-1 ; y<=ob->tilebottom ; y++,map+=mapwidth)
 	{
-		if (wall = tinf[NORTHWALL+*map])
+		if ((wall = tinf[NORTHWALL+*map]) != 0)
 		{
 			clip = wallclip[wall&7][midxpix];
 			move = ( (y<<G_T_SHIFT)+clip - 1) - ob->bottom;
@@ -937,7 +937,7 @@ void ClipToEnds (objtype *ob)
 		mapbwidthtable[oldtiletop+1]/2 + ob->tilemidx;
 	for (unsigned y=oldtiletop+1 ; y>=ob->tiletop ; y--,map-=mapwidth)
 	{
-		if (wall = tinf[SOUTHWALL+*map])
+		if ((wall = tinf[SOUTHWALL+*map]) != 0)
 		{
 			clip = wallclip[wall&7][midxpix];
 			move = ( ((y+1)<<G_T_SHIFT)-clip ) - ob->top;
@@ -982,7 +982,7 @@ void ClipToEastWalls (objtype *ob)
 		map = (uint16_t*)mapsegs[1] +
 			mapbwidthtable[y]/2 + ob->tileleft;
 
-		if (ob->hiteast = tinf[EASTWALL+*map])
+		if ((ob->hiteast = tinf[EASTWALL+*map]) != 0)
 		{
 			move = ( (ob->tileleft+1)<<G_T_SHIFT ) - ob->left;
 			MoveObjHoriz (ob,move);
@@ -1011,7 +1011,7 @@ void ClipToWestWalls (objtype *ob)
 		map = (uint16_t*)mapsegs[1] +
 			mapbwidthtable[y]/2 + ob->tileright;
 
-		if (ob->hitwest = tinf[WESTWALL+*map])
+		if ((ob->hitwest = tinf[WESTWALL+*map]) != 0)
 		{
 			move = ( (ob->tileright<<G_T_SHIFT ) -1) - ob->right;
 			MoveObjHoriz (ob,move);
@@ -1895,6 +1895,13 @@ startlevel:
 		case victorious:
 			GameFinale ();
 			goto done;
+			
+		case notdone:
+			// If we're not done, keep playing.
+			break;
+		
+		default:
+			Quit("Unknown play state!");
 		}
 
 

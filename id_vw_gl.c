@@ -41,17 +41,38 @@ const char *pxprog = 	"#version 110\n"\
 			"\tgl_FragColor = texture1D(palette,texture2D(screenBuf, gl_TexCoord[0].xy).r);\n"\
 			"}\n";
 
+void VW_GL_SetVGAPalette(const uint8_t vgapal[16][3])
+{
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_1D, palettetexture);
+	glTexSubImage1D(GL_TEXTURE_1D, 0, 0, 16, GL_RGB, GL_UNSIGNED_BYTE, &vgapal[0][0]);
+	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glActiveTexture(GL_TEXTURE0);
+}
+
+void VW_GL_SetEGAPalette(char egapal[17])
+{
+	uint8_t vgapal[16][3];
+	for(int i = 0; i < 16; ++i)
+	{
+		int index = ((egapal[i] >> 1) & 8) | (egapal[i] & 7);
+		vgapal[i][0] = VW_EGAPalette[index][0];
+		vgapal[i][1] = VW_EGAPalette[index][1];
+		vgapal[i][2] = VW_EGAPalette[index][2];
+	}
+	VW_GL_SetVGAPalette(vgapal);
+}
+
 void VW_GL_Init()
 {
 	glGenTextures(1, &screentexture);
 	glGenTextures(1, &palettetexture);
 	glActiveTexture(GL_TEXTURE1);
 	glBindTexture(GL_TEXTURE_1D, palettetexture);
-	glTexImage1D(GL_TEXTURE_1D, 0, GL_RGB8, 256, 0, GL_RGB, GL_UNSIGNED_BYTE, &VW_EGAPalette[0][0]);
-	glTexSubImage1D(GL_TEXTURE_1D, 0, 0, 16, GL_RGB, GL_UNSIGNED_BYTE, &VW_EGAPalette[0][0]);
-	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexImage1D(GL_TEXTURE_1D, 0, GL_RGB8, 256, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
 	glActiveTexture(GL_TEXTURE0);
+	VW_GL_SetVGAPalette(&VW_EGAPalette[0][0]);
 	
 	int compileStatus = 0;
 	GLuint ps = glCreateShader(GL_FRAGMENT_SHADER);

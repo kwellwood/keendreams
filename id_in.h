@@ -198,7 +198,7 @@ extern	void		IN_Startup(void),IN_Shutdown(void),
 extern	boolean		IN_UserInput(longword delay,boolean clear),
 					IN_IsUserInput(void),
 					IN_StartDemoRecord(word bufsize);
-extern	byte		*IN_GetScanName(ScanCode);
+extern	char		*IN_GetScanName(ScanCode);
 extern	char		IN_WaitForASCII(void);
 extern	ScanCode	IN_WaitForKey(void);
 extern	word		IN_GetJoyButtonsDB(word joy);

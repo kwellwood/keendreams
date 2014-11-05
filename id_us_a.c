@@ -1,5 +1,6 @@
 
 #include "id_heads.h"
+#include <time.h>
 // Random Number Generator from Omnispeak/id_us_a.asm
 
 /*		This is just John Carmack's table

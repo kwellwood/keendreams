@@ -182,7 +182,7 @@ void	StartupId (void);
 void	ShutdownId (void);
 void	Quit (char *error);
 void	InitGame (void);
-void	main (int argc, char **argv);
+int	main (int argc, char **argv);
 
 
 /*
