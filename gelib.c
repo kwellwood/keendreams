@@ -21,6 +21,11 @@
 
 #define BIO_BUFFER_LEN	(8192)
 
+#ifdef WIN32
+#include <io.h>
+#else
+#include <unistd.h>
+#endif
 
 
 ////////////////////////////////////////////////////////////////////////////
@@ -127,13 +132,14 @@ int UnpackEGAShapeToScreen(struct Shape *SHP,int startx,int starty)
 //
 long Verify(char *filename)
 {
-	int handle;
+	FILE *handle;
 	long size;
 
-	if ((handle=open(filename,0))==-1)
+	if ((handle=fopen(filename,"rb"))==NULL)
 		return (0);
-	size=CAL_filelength(handle);
-	close(handle);
+	fseek(handle, 0, SEEK_END);
+	size=ftell(handle);
+	fclose(handle);
 	return(size);
 }
 

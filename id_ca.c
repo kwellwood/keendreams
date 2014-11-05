@@ -822,7 +822,7 @@ cachein:
 ======================
 */
 
-void CAL_CacheSprite (int chunk, char  *compressed)
+void CAL_CacheSprite (int chunk, byte  *compressed)
 {
 	int i;
 	uint16_t shiftstarts[5];
@@ -1079,7 +1079,7 @@ void CA_CacheGrChunk (int chunk)
 
 void CA_CacheMap (int mapnum)
 {
-	uint32_t pos,compressed,expanded;
+	int32_t pos,compressed,expanded;
 	int		plane;
 	memptr	*dest,bigbufferseg,buffer2seg;
 	unsigned	size;

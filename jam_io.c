@@ -22,6 +22,12 @@
 #include <ctype.h>
 #include <fcntl.h>
 
+#ifdef WIN32
+#include <io.h>
+#else
+#include <unistd.h>
+#endif
+
 #include "kd_def.h"
 //#include "gelib.h"
 #include "jam_io.h"

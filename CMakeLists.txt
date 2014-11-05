@@ -52,7 +52,7 @@ if (CROSS_X86)
 	set(CMAKE_LD_FLAGS "-m32")
 endif (CROSS_X86)
 
-set(CMAKE_C_FLAGS "-std=gnu99 -Wno-deprecated-writable-strings")
+set(CMAKE_C_FLAGS "-std=gnu99 -funsigned-char")
 
 set(KDREAMS_ID_SRCS
 id_heads.h

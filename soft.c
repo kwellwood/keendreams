@@ -33,6 +33,12 @@
 BufferedIO lzwBIO;
 
 
+#ifdef WIN32
+#include <io.h>
+#else
+#include <unistd.h>
+#endif
+
 
 
 //===========================================================================
@@ -70,7 +76,7 @@ unsigned long BLoad(char *SourceFile, memptr *DstPtr)
 	memptr SrcPtr;
 	unsigned long i, j, k, r, c;
 	word flags;
-	byte Buffer[8];
+	char Buffer[4];
 	unsigned long SrcLen,DstLen;
 	struct CMP1Header CompHeader;
 	boolean Compressed = false;
@@ -246,7 +252,7 @@ int LoadLIBShape(char *SLIB_Filename, char *Filename,struct Shape *SHP)
 		SwapLong(&ChunkLen);
 		ChunkLen = (ChunkLen+1) & 0xFFFFFFFE;
 		printf("Chunk: %c%c%c%c, size %d (fileLen = %d)\n", *ptr, *(ptr+1), *(ptr+2), *(ptr+3), ChunkLen, FileLen);
-		printf("ptr val = %d", ptr - (byte*)IFFfile);
+		//printf("ptr val = %d", ptr - (byte*)IFFfile);
 
 		if (CHUNK("BMHD"))
 		{
