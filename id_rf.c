@@ -1121,8 +1121,9 @@ void RF_Scroll (int x, int y)
 			oldscreen = screenstart[i] - screenmove;
 			newscreen = oldscreen + screencopy;
 			screenstart[i] = newscreen + screenmove;
+			screenstart[i] = (screenstart[i] + VW_VIDEOMEM_SIZE) % VW_VIDEOMEM_SIZE;
 			VW_ScreenToScreen (oldscreen,newscreen,
-				PORTTILESWIDE*2,PORTTILESHIGH*16);
+				PORTTILESWIDE*16,PORTTILESHIGH*16);
 
 			if (i==screenpage)
 				VW_SetScreen(newscreen+oldpanadjust,oldpanx & xpanmask);
