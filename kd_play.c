@@ -214,6 +214,7 @@ void CheckKeys (void)
 //
 	if (Keyboard[sc_Space])
 	{
+		VW_FixRefreshBuffer();
 		StatusWindow ();
 		IN_ClearKeysDown();
 		RF_ForceRefresh();

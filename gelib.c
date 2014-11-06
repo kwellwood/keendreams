@@ -19,7 +19,7 @@
 #include "kd_def.h"
 #include <SDL2/SDL.h>
 
-#define BIO_BUFFER_LEN	(8192)
+#define BIO_BUFFER_LEN	(64)
 
 #ifdef WIN32
 #include <io.h>
@@ -194,21 +194,20 @@ byte bio_readch(BufferedIO *bio)
 //--------------------------------------------------------------------------
 void bio_fillbuffer(BufferedIO *bio)
 {
-	#define NEAR_BUFFER_LEN	(64)
-	byte near_buffer[NEAR_BUFFER_LEN];
 	short bio_length,bytes_read,bytes_requested;
 
 	bytes_read = 0;
 	bio_length = BIO_BUFFER_LEN;
 	while (bio_length)
 	{
-		if (bio_length > NEAR_BUFFER_LEN-1)
-			bytes_requested = NEAR_BUFFER_LEN;
+		if (bio_length > BIO_BUFFER_LEN-1)
+			bytes_requested = BIO_BUFFER_LEN;
 		else
 			bytes_requested = bio_length;
 
-		read(bio->handle,near_buffer,bytes_requested);
-		memcpy(&((byte*)bio->buffer)[bytes_read],near_buffer,bytes_requested);
+		bytes_requested = read(bio->handle,&((byte*)bio->buffer)[bytes_read],bytes_requested);
+		if (bytes_requested <= 0) return;
+//		memcpy(&((byte*)bio->buffer)[bytes_read],near_buffer,bytes_requested);
 
 		bio_length -= bytes_requested;
 		bytes_read += bytes_requested;
