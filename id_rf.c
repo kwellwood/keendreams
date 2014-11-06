@@ -811,15 +811,15 @@ void RFL_InitSpriteList (void)
 
 void RFL_CalcOriginStuff (long x, long y)
 {
-	if (x<originxmin)
-	  x=originxmin;
-	else if (x>originxmax)
-	  x=originxmax;
+	if (x<(long)originxmin)
+	  x=(long)originxmin;
+	else if (x>(long)originxmax)
+	  x=(long)originxmax;
 
-	if (y<originymin)
-	  y=originymin;
-	else if (y>originymax)
-	  y=originymax;
+	if (y<(long)originymin)
+	  y=(long)originymin;
+	else if (y>(long)originymax)
+	  y=(long)originymax;
 
 	originxglobal = x;
 	originyglobal = y;
@@ -1209,7 +1209,7 @@ void RF_Scroll (int x, int y)
 	update0 = updatestart[0]+UPDATEWIDE*PORTTILESHIGH-1;
 	update1 = updatestart[1]+UPDATEWIDE*PORTTILESHIGH-1;
 	*update0++ = *update1++ = 0;
-	*(unsigned *)update0 = *(unsigned *)update1 = UPDATETERMINATE;
+	*(uint16_t *)update0 = *(uint16_t *)update1 = UPDATETERMINATE;
 }
 
 //===========================================================================

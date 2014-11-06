@@ -36,6 +36,7 @@ BufferedIO lzwBIO;
 #ifdef WIN32
 #include <io.h>
 #else
+#define O_BINARY 0
 #include <unistd.h>
 #endif
 
@@ -347,7 +348,7 @@ memptr LoadLIBFile(char *LibName,char *FileName,memptr *MemPtr)
 	// OPEN SOFTLIB FILE
 	//
 
-	if ((handle = open(LibName,O_RDONLY, S_IREAD)) == -1)
+	if ((handle = open(LibName,O_RDONLY | O_BINARY, S_IREAD)) == -1)
 		return(NULL);
 
 
