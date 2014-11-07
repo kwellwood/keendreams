@@ -343,6 +343,7 @@ long CA_RLEWCompress (word *src, int expLength, word *dest, word rletag)
 	{
 		uint16_t val = *srcptr++;
 		expLength -= 2;
+		count = 1;
 		while (*srcptr == val && expLength)
 		{
 			count++;
@@ -395,7 +396,7 @@ void CA_RLEWexpand (word *src, word *dest, int expLength, word rletag)
 			count = *(srcptr++);
 			value = *(srcptr++);
 			expLength -= count*2;
-			if(expLength < 0) return;
+			if(expLength < 0) return; //count += expLength;
 			for(i = 0; i < count; ++i) { *(dstptr++) = value; }
 		}
 	}

@@ -435,7 +435,7 @@ void ChangeToFlower (objtype *ob)
 	SD_PlaySound (FLOWERPOWERSND);
 	ob->y = ob->bottom-TILEGLOBAL*2;
 	ob->temp1 = (int)ob->obclass;
-	ob->temp2 = (int)ob->state;
+	ob->temp2 = (int)StateToInt(ob->state);
 	ob->temp3 = 0;
 	ob->needtoclip = true;
 	ob->obclass = inertobj;
@@ -465,7 +465,7 @@ void FlowerThink (objtype *ob)
 	{
 		GetNewObj (true);
 		new->active = allways;
-		new->temp1 = (int)ob;
+		new->temp1 = ObjToInt(ob);
 		new->x = ob->x;
 		new->y = ob->y;
 		NewState (new,&s_pooffrom1);
@@ -489,10 +489,10 @@ void ChangeFromFlower (objtype *ob)
 	unsigned	oldbottom;
 
 	SD_PlaySound (UNFLOWERPOWERSND);
-	flower = (objtype *)ob->temp1;
+	flower = IntToObj(ob->temp1);
 
 	oldbottom = flower->bottom;
-	ChangeState (flower,(statetype *)flower->temp2);
+	ChangeState (flower,IntToState(flower->temp2));
 	flower->y += oldbottom - flower->bottom;
 
 	flower->obclass = flower->temp1;
