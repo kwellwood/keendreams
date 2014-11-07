@@ -168,6 +168,11 @@ void VW_GL_GetViewport(int *x, int *y, int *w, int *h)
 	if (h) *h = winh;
 }
 
+void VW_GL_SetFullscreen(boolean fullscreen)
+{
+	SDL_SetWindowFullscreen(window, fullscreen?SDL_WINDOW_FULLSCREEN_DESKTOP:0);
+}
+
 void VW_GL_UpdateLineWidth()
 {
 	glBindTexture(GL_TEXTURE_2D, screentexture);
