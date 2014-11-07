@@ -212,12 +212,12 @@ SaveGame(int file)
 //
 // leave a word at start of compressed data for compressed length
 //
-		compressed = CA_RLEWCompress ((unsigned huge *)mapsegs[i]
-			,expanded,((unsigned *)bigbuffer)+1,RLETAG);
+		compressed = CA_RLEWCompress ((word *)mapsegs[i]
+			,expanded,((word *)bigbuffer)+1,RLETAG);
 
-		*(unsigned huge *)bigbuffer = compressed;
+		WriteU16(file, compressed);
 
-		if (!CA_FarWrite(file,(void far *)bigbuffer,compressed+2) )
+		if (!CA_FarWrite(file,(void *)bigbuffer,compressed) )
 		{
 			MM_FreePtr (&bigbuffer);
 			return(false);
@@ -225,11 +225,7 @@ SaveGame(int file)
 	}
 
 	for (o = player;o;o = o->next)
-		if (!CA_FarWrite(file,(void far *)o,sizeof(objtype)))
-		{
-			MM_FreePtr (&bigbuffer);
-			return(false);
-		}
+		WriteObjStruct(file, o);
 
 	MM_FreePtr (&bigbuffer);
 	return(true);
@@ -243,7 +239,7 @@ LoadGame(int file)
 	objtype	*o;
 	int orgx,orgy;
 	objtype		*prev,*next,*followed;
-	unsigned	compressed,expanded;
+	uint16_t	compressed,expanded;
 	memptr	bigbuffer;
 
 	if (!CA_FarRead(file,(void far *)&gamestate,sizeof(gamestate)))
@@ -266,20 +262,15 @@ LoadGame(int file)
 
 	for (i = 0;i < 3;i++)	// Read all three planes of the map
 	{
-		if (!CA_FarRead(file,(void far *)&compressed,sizeof(compressed)) )
-		{
-			MM_FreePtr (&bigbuffer);
-			return(false);
-		}
-
+		compressed = ReadU16(file);
 		if (!CA_FarRead(file,(void far *)bigbuffer,compressed) )
 		{
 			MM_FreePtr (&bigbuffer);
 			return(false);
 		}
 
-		CA_RLEWexpand ((unsigned huge *)bigbuffer,
-			(unsigned huge *)mapsegs[i],compressed,RLETAG);
+		CA_RLEWexpand ((word *)bigbuffer,
+			(word *)mapsegs[i],expanded,RLETAG);
 	}
 
 	MM_FreePtr (&bigbuffer);
@@ -290,8 +281,7 @@ LoadGame(int file)
 	new = player;
 	prev = new->prev;
 	next = new->next;
-	if (!CA_FarRead(file,(void far *)new,sizeof(objtype)))
-		return(false);
+	ReadObjStruct(file, new);
 	new->prev = prev;
 	new->next = next;
 	new->needtoreact = true;
@@ -301,8 +291,7 @@ LoadGame(int file)
 	{
 		prev = new->prev;
 		next = new->next;
-		if (!CA_FarRead(file,(void far *)new,sizeof(objtype)))
-			return(false);
+		ReadObjStruct(file, new);
 		followed = new->next;
 		new->prev = prev;
 		new->next = next;
@@ -315,7 +304,7 @@ LoadGame(int file)
 			break;
 	}
 
-	*((long *)&(scoreobj->temp1)) = -1;		// force score to be updated
+	*((uint32_t *)&(scoreobj->temp1)) = -1;		// force score to be updated
 	scoreobj->temp3 = -1;			// and flower power
 	scoreobj->temp4 = -1;			// and lives
 

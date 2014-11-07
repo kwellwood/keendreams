@@ -86,6 +86,7 @@ kd_demo.c
 kd_keen.c
 kd_main.c
 kd_play.c
+kd_compat.c
 )
 
 set(KDREAMS_SOFTDISK_SRCS
