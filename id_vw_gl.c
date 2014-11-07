@@ -103,6 +103,8 @@ void VW_GL_Init()
 
 void VW_GL_SetupFramebufferObject()
 {
+	static int old_integerscalex = -1;
+	static int old_integerscaley = -1;
 	if (!GLEW_EXT_framebuffer_object)
 	{
 		return;
@@ -111,17 +113,24 @@ void VW_GL_SetupFramebufferObject()
 		glGenTextures(1, &fbotexture);
 	if (!framebufferobj)
 		glGenFramebuffersEXT(1, &framebufferobj);
-	glBindTexture(GL_TEXTURE_2D, fbotexture);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, vw_integerscalex, vw_integerscaley, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, framebufferobj);
-	glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, GL_TEXTURE_2D, fbotexture, 0);
-	
-	GLenum framebufferstatus = glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT);
-	if (framebufferstatus != GL_FRAMEBUFFER_COMPLETE_EXT)
+	if (old_integerscalex != vw_integerscalex || old_integerscaley != vw_integerscaley)
 	{
-		Quit("Framebuffer Object was not complete!");
+		glBindTexture(GL_TEXTURE_2D, fbotexture);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, vw_integerscalex, vw_integerscaley, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, framebufferobj);
+		glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, GL_TEXTURE_2D, fbotexture, 0);
+		
+		GLenum framebufferstatus = glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT);
+		if (framebufferstatus != GL_FRAMEBUFFER_COMPLETE_EXT)
+		{
+			Quit("Framebuffer Object was not complete!");
+		}
+		old_integerscalex = vw_integerscalex;
+		old_integerscaley = vw_integerscaley;
 	}
+	else
+		glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, framebufferobj);
 	glViewport(0, 0, vw_integerscalex, vw_integerscaley);
 }
 
