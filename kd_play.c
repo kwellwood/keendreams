@@ -1,5 +1,6 @@
-/* Keen Dreams Source Code
+/* Keen Dreams (SDL2/Steam Port) Source Code
  * Copyright (C) 2014 Javier M. Chavez
+ * Copyright (C) 2015 David Gow <david@davidgow.net>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -245,6 +246,7 @@ void CheckKeys (void)
 		US_CPrint ("Loading");
 		VW_UpdateScreen ();
 		US_ControlPanel();
+		FixScoreBox();
 		IN_ClearKeysDown();
 		if (restartgame)
 			playstate = resetgame;
@@ -259,6 +261,7 @@ void CheckKeys (void)
 //
 	if (Keyboard[sc_F10] && DebugKeys() )
 	{
+		STAT_Invalidate();
 		RF_ForceRefresh();
 		lasttimecount = TimeCount;
 	}
@@ -750,6 +753,8 @@ void 	SetupGameLevel (boolean loadnow)
 		RF_NewPosition (orgx,orgy);
 		CalcInactivate ();
 	}
+
+	STAT_ValidateMap();
 
 
 }
@@ -1388,7 +1393,14 @@ void StateMachine (objtype *ob)
 		state = ob->state;
 	}
 
-	while (excesstics)
+	// NOTE(davidgow): 'state' can be NULL here when there are
+	// > 2 tics/frame. This would result in some garbage being read
+	// in DOS, but crashes on modern OSes like Linux, so we manually
+	// check for 'state' being null here. We did this in Omnispeak,
+	// and it worked great. I've seen no issues here either, so I'm
+	// working under the assumption that this is a genuine bug, worth
+	// fixing!
+	while (state && excesstics)
 	{
 	//
 	// passed through to next state
@@ -1633,6 +1645,7 @@ void GameFinale (void)
 {
 
 	VW_FixRefreshBuffer ();
+	IN_ClearKeysDown ();
 
 /* screen 1 of finale text (16 lines) */
 	US_CenterWindow (30,21);
@@ -1703,6 +1716,7 @@ void GameFinale (void)
 	VW_WaitVBL(60);
 	IN_ClearKeysDown ();
 	IN_Ack();
+	RF_NewPosition(0,0);
 
 }
 
@@ -1748,7 +1762,7 @@ void HandleDeath (void)
 			y = top;
 
 // draw select bar
-		if ( (TimeCount / 16)&1 )
+		if ( (SD_GetTimeCount() / 16)&1 )
 			color = SECONDCOLOR;
 		else
 			color = FIRSTCOLOR;
@@ -1762,8 +1776,7 @@ void HandleDeath (void)
 		VWB_Vlin (y+1,y+11, WindowX+WindowW-4,color);
 		VWB_Vlin (y+1,y+11, WindowX+WindowW-5,color);
 
-		VW_UpdateScreen ();
-
+		VW_UpdateScreen();
 // erase select bar
 		VWB_Hlin (WindowX+4,WindowX+WindowW-4,y,WHITE);
 		VWB_Hlin (WindowX+4,WindowX+WindowW-4,y+1,WHITE);
@@ -1799,8 +1812,6 @@ void HandleDeath (void)
 		else if (c.yaxis == 1 || LastScan == sc_DownArrow)
 			selection = 1;
 		
-		VW_WaitVBL(2);
-		VW_UpdateScreen();
 	} while (1);
 
 }
@@ -1888,12 +1899,14 @@ startlevel:
 			gamestate.leveldone[mapon] = true;	// finished the level
 			if (mapon != 0)
 				gamestate.mapon = 0;
+			STAT_FinishMap();
 			break;
 
 		case resetgame:
 			return;
 
 		case victorious:
+			STAT_FinishGame();
 			GameFinale ();
 			goto done;
 			

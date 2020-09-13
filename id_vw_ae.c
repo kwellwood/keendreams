@@ -1,3 +1,22 @@
+/* Keen Dreams (SDL2/Steam Port) Source Code
+ * Copyright (C) 2014 David Gow <david@davidgow.net>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+
+
 // stubs for id_vw_ae.asm
 
 #include "id_heads.h"
@@ -5,14 +24,16 @@
 
 uint8_t *vw_videomem;
 
-#ifndef WIN32
+#ifndef _MSC_VER
 #include <sys/mman.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <x86intrin.h>
 #else
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #endif
+
 
 void VWL_SetupVideoMemory()
 {
@@ -26,7 +47,7 @@ void VWL_SetupVideoMemory()
 	
 	VirtualFree(vw_videomem, 0, MEM_RELEASE);
 	
-	HANDLE mapping = CreateFileMappingA(INVALID_HANDLE_VALUE, 0, PAGE_READWRITE, (uintptr_t)(VW_VIDEOMEM_SIZE) >> 32, (uintptr_t)VW_VIDEOMEM_SIZE & 0xffffffff, 0);
+	HANDLE mapping = CreateFileMappingA(INVALID_HANDLE_VALUE, 0, PAGE_READWRITE, /* (uintptr_t)(VW_VIDEOMEM_SIZE) >> 32 */ 0, (uintptr_t)VW_VIDEOMEM_SIZE & 0xffffffff, 0);
 	if (!mapping)
 		Quit("Couldn't create emulated video memory mapping.");
 	
@@ -141,6 +162,7 @@ void VW_RawScreenToMem(unsigned source, memptr dest, unsigned wide, unsigned hei
 
 void VW_RawBlitToScreen(memptr source, unsigned dest, unsigned wide, unsigned height)
 {
+#ifndef __SSE__ 
 	// I'm pretty horribly ashamed of this, but I did profile it and it was faster.
 	uint32_t *src = (uint32_t*)source;
 	uint32_t *dst = (uint32_t*)&vw_videomem[dest];
@@ -162,6 +184,22 @@ void VW_RawBlitToScreen(memptr source, unsigned dest, unsigned wide, unsigned he
 		}
 		dst += linewidth / 4 - wide / 4;
 	}
+#else
+        __m64 *src = (__m64*)source;
+        uint8_t *dst = (uint8_t*)&vw_videomem[dest];
+        __m64 colourkey = _mm_set1_pi8(0xFF);
+        for (int y = 0; y < height; ++y)
+        {
+                for (int x = 0; x < wide/8; ++x)
+                {
+                        __m64 c = *src++;
+                        __m64 mask = _mm_xor_si64(_mm_cmpeq_pi8(c, colourkey), colourkey);
+                        _mm_maskmove_si64(c, mask, (char*)dst);
+                        dst += 8;
+                }
+                dst += linewidth - wide;
+        }
+#endif
 }
 
 void VWL_UpdateScreenBlocks()

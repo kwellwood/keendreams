@@ -1,5 +1,6 @@
-/* Keen Dreams Source Code
+/* Keen Dreams (SDL2/Steam Port) Source Code
  * Copyright (C) 2014 Javier M. Chavez
+ * Copyright (C) 2015 David Gow <david@davidgow.net>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,6 +31,7 @@
 #include "string.h"
 
 #include "kd_def.h"
+#include <SDL2/SDL.h>
 #pragma hdrstop
 
 /*
@@ -70,6 +72,7 @@ void	ShutdownId (void);
 void	Quit (char *error);
 void	InitGame (void);
 int	main (int argc, char **argv);
+int	g_minTics = 2;
 
 //===========================================================================
 
@@ -86,17 +89,21 @@ int	main (int argc, char **argv);
 void DebugMemory (void)
 {
 	VW_FixRefreshBuffer ();
-	US_CenterWindow (16,7);
+	US_CenterWindow (16,10);
 
 	US_CPrint ("Memory Usage");
 	US_CPrint ("------------");
-	US_Print ("Total     :");
+	US_Print ("Total      :");
 	US_PrintUnsigned (MM_SystemMegs());
 	US_Print ("m\nFree      :");
 	US_PrintUnsigned (MM_UnusedMemory());
-	US_Print ("m\nWith purge:");
-	US_PrintUnsigned (MM_TotalFree());
-	US_Print ("m\n");
+	US_Print ("m\nIn Use    :");
+	US_PrintUnsigned (MM_UsedMemory() / 1024);
+	US_Print ("k\n");
+	US_Print ("Blocks:\nUsed      :");
+	US_PrintUnsigned (MM_UsedBlocks());
+	US_Print ("\nPurgable :");
+	US_PrintUnsigned (MM_PurgableBlocks());
 	VW_UpdateScreen();
 	IN_Ack ();
 #if GRMODE == EGAGR
@@ -223,6 +230,8 @@ void TestSprites(void)
 
 #endif
 
+extern	unsigned	xpanmask;			// prevent panning to odd pixels
+extern char *lineInputDescription;
 
 /*
 ================
@@ -237,7 +246,7 @@ int DebugKeys (void)
 	int level;
 
 #if FRILLS
-	if (Keyboard[0x12] && ingame)	// DEBUG: end + 'E' to quit level
+	if (Keyboard[SDL_GetScancodeFromKey(SDLK_e)] && ingame)	// DEBUG: end + 'E' to quit level
 	{
 		if (tedlevel)
 			TEDDeath();
@@ -245,7 +254,7 @@ int DebugKeys (void)
 	}
 #endif
 
-	if (Keyboard[0x22] && ingame)		// G = god mode
+	if (Keyboard[SDL_GetScancodeFromKey(SDLK_g)] && ingame)		// G = god mode
 	{
 		VW_FixRefreshBuffer ();
 		US_CenterWindow (12,2);
@@ -258,7 +267,7 @@ int DebugKeys (void)
 		godmode ^= 1;
 		return 1;
 	}
-	else if (Keyboard[0x17])			// I = item cheat
+	else if (Keyboard[SDL_GetScancodeFromKey(SDLK_i)])			// I = item cheat
 	{
 		VW_FixRefreshBuffer ();
 		US_CenterWindow (12,3);
@@ -270,7 +279,7 @@ int DebugKeys (void)
 		IN_Ack ();
 		return 1;
 	}
-	else if (Keyboard[0x24])			// J = jump cheat
+	else if (Keyboard[SDL_GetScancodeFromKey(SDLK_j)])			// J = jump cheat
 	{
 		jumpcheat^=1;
 		VW_FixRefreshBuffer ();
@@ -284,17 +293,17 @@ int DebugKeys (void)
 		return 1;
 	}
 #if FRILLS
-	else if (Keyboard[0x32])			// M = memory info
+	else if (Keyboard[SDL_GetScancodeFromKey(SDLK_m)])			// M = memory info
 	{
 		DebugMemory();
 		return 1;
 	}
 #endif
-	else if (Keyboard[0x19])			// P = pause with no screen disruptioon
+	else if (Keyboard[SDL_GetScancodeFromKey(SDLK_p)])			// P = pause with no screen disruptioon
 	{
 		IN_Ack();
 	}
-	else if (Keyboard[0x1f] && ingame)	// S = slow motion
+	else if (Keyboard[SDL_GetScancodeFromKey(SDLK_s)] && ingame)	// S = slow motion
 	{
 		singlestep^=1;
 		VW_FixRefreshBuffer ();
@@ -308,19 +317,20 @@ int DebugKeys (void)
 		return 1;
 	}
 #if FRILLS
-	else if (Keyboard[0x14])			// T = sprite test
+	else if (Keyboard[SDL_GetScancodeFromKey(SDLK_t)])			// T = sprite test
 	{
 		TestSprites();
 		return 1;
 	}
 #endif
-	else if (Keyboard[0x11] && ingame)	// W = warp to level
+	else if (Keyboard[SDL_GetScancodeFromKey(SDLK_w)] && ingame)	// W = warp to level
 	{
 		VW_FixRefreshBuffer ();
 		US_CenterWindow(26,3);
 		PrintY+=6;
 		US_Print("  Warp to which level(0-16):");
 		VW_UpdateScreen();
+		lineInputDescription = "Warp to which level(0-16):";
 		esc = !US_LineInput (px,py,str,NULL,true,2,0);
 		if (!esc)
 		{
@@ -331,6 +341,57 @@ int DebugKeys (void)
 				playstate = warptolevel;
 			}
 		}
+		return 1;
+	}
+	else if (Keyboard[SDL_GetScancodeFromKey(SDLK_v)])
+	{
+		int vsync = SDL_GL_GetSwapInterval();
+		VW_FixRefreshBuffer ();
+		US_CenterWindow (18,3);
+		if (vsync == -1)
+		{
+			US_PrintCentered ("VSync OFF");
+			SDL_GL_SetSwapInterval(0);
+		}
+		else if (vsync == 0)
+		{
+			US_PrintCentered ("VSync ON");
+			SDL_GL_SetSwapInterval(1);
+		}
+		else
+		{
+			if (SDL_GL_SetSwapInterval(-1) == 0)
+			{
+				US_PrintCentered ("VSync ADAPTIVE");
+			}
+			else
+			{
+				US_PrintCentered ("VSync OFF");
+				SDL_GL_SetSwapInterval(0);
+			}
+		}
+		VW_UpdateScreen();
+		IN_Ack ();
+		return 1;
+	}
+	else if (Keyboard[SDL_GetScancodeFromKey(SDLK_h)])
+	{
+		VW_FixRefreshBuffer ();
+		US_CenterWindow (18, 3);
+		if (g_minTics == 2)
+		{
+			US_PrintCentered ("70Hz Mode ON");
+			g_minTics = 1;
+			xpanmask = 7;
+		}
+		else
+		{
+			US_PrintCentered ("70Hz Mode OFF");
+			xpanmask = (fakecga)?4:6;
+			g_minTics = 2;
+		}
+		VW_UpdateScreen();
+		IN_Ack();
 		return 1;
 	}
 	return 0;
@@ -374,6 +435,7 @@ void Quit (char *error)
   ShutdownId ();
   if (error && *error)
   {
+	SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Keen Dreams", error, 0);
 	puts(error);
 	puts("\n");
 	exit(1);
@@ -459,6 +521,8 @@ void InitGame (void)
 
 	VW_SetScreenMode (GRMODE);
 	VW_ClearVideo (BLACK);
+
+	STAT_Init();
 }
 
 
@@ -481,27 +545,28 @@ int main (int argc, char **argv)
 
 	if (_argc > 1 && stricmp(_argv[1], "/VER") == 0)
 	{
-		printf("\nKeen Dreams version 1.93 (Rev 1)\n");
-		printf("developed for use with 100%% IBM compatibles\n");
-		printf("that have 640K memory, DOS version 3.3 or later,\n");
-		printf("and an EGA or VGA display adapter.\n");
+		printf("\nKeen Dreams version 2.00 (Steam)\n");
 		printf("Copyright 1991-1993 Softdisk Publishing.\n");
+		printf("Copyright 2014 Javier M. Chavez.\n");
+		printf("Remastered version by David Gow\n");
 		printf("Commander Keen is a trademark of Id Software.\n");
 		exit(0);
 	}
 
 	if (_argc > 1 && stricmp(_argv[1], "/?") == 0)
 	{
-		printf("\nKeen Dreams version 1.93\n");
-		printf("Copyright 1991-1993 Softdisk Publishing.\n\n");
-		printf("Type KDREAMS from the DOS prompt to run.\n\n");
-		printf("KDREAMS /COMP for SVGA compatibility mode\n");
-		printf("KDREAMS /NODR stops program hang with the drive still on\n");
+		printf("\nKeen Dreams version 2.00beta1\n");
+		printf("Copyright 1991-1993 Softdisk Publishing.\n");
+		printf("Copyright 2014 Javier M. Chavez.\n");
+		printf("Remastered version by David Gow\n");
+		printf("Commander Keen is a trademark of Id Software.\n");
+		printf("Type ./KDreams from the DOS prompt to run.\n\n");
 		printf("KDREAMS /NOAL disables AdLib and Sound Blaster detection\n");
-		printf("KDREAMS /NOSB disables Sound Blaster detection\n");
 		printf("KDREAMS /NOJOYS ignores joystick\n");
 		printf("KDREAMS /NOMOUSE ignores mouse\n");
-		printf("KDREAMS /HIDDENCARD overrides video card detection\n");
+		printf("KDREAMS /SWMOUSE for software mouse cursor\n");
+		printf("KDREAMS /FULLSCREEN to start in fullscreen mode\n");
+		printf("KDREAMS /NOASPECT to start in widescreen mode\n");
 		printf("KDREAMS /VER  for version and compatibility information\n");
 		printf("KDREAMS /? for this help information\n");
 		exit(0);

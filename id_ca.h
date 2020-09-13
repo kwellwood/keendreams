@@ -1,5 +1,6 @@
-/* Keen Dreams Source Code
+/* Keen Dreams (SDL2/Steam Port) Source Code
  * Copyright (C) 2014 Javier M. Chavez
+ * Copyright (C) 2015 David Gow <david@davidgow.net>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,6 +31,10 @@
 #include "id_glob.h"
 #endif
 
+#ifndef __WIN_UTILS__
+#include "win_utils.h"
+#endif
+
 #define __ID_CA__
 
 //===========================================================================
@@ -37,8 +42,8 @@
 //#define MAPHEADERLINKED
 //#define GRHEADERLINKED
 //#define AUDIOHEADERLINKED
-//#define MAPSCOMPRESSED
-//#define AUDIOCOMPRESSED
+#define MAPSCOMPRESSED
+#define AUDIOCOMPRESSED
 
 #define NUMMAPS	30
 
@@ -60,7 +65,7 @@
 
 //===========================================================================
 
-typedef	struct __attribute__((__packed__))
+PACKED(maptype)
 {
 	int32_t		planestart[3];
 	uint16_t	planelength[3];

@@ -1,5 +1,6 @@
-/* Keen Dreams Source Code
+/* Keen Dreams (SDL2/Steam Port) Source Code
  * Copyright (C) 2014 Javier M. Chavez
+ * Copyright (C) 2015 David Gow <david@davidgow.net>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,6 +37,7 @@
 //
 
 #include "id_heads.h"
+#include <stdbool.h>
 #include <SDL2/SDL.h>
 #pragma	hdrstop
 
@@ -45,9 +47,6 @@
 #define	MReset		0
 #define	MButtons	3
 #define	MDelta		11
-
-#define	MouseInt	0x33
-#define	Mouse(x)	_AX = x,geninterrupt(MouseInt)
 
 // Stuff for the joystick
 #define	JoyScaleMax		32768
@@ -62,7 +61,10 @@
 		boolean		Paused;
 		char		LastASCII;
 		ScanCode	LastScan;
-		KeyboardDef	KbdDefs[MaxKbds] = {{0x1d,0x38,0x47,0x48,0x49,0x4b,0x4d,0x4f,0x50,0x51}};
+		KeyboardDef	KbdDefs[MaxKbds] = {{sc_Control, sc_Alt,
+							SDL_SCANCODE_HOME, SDL_SCANCODE_UP, SDL_SCANCODE_PAGEUP,
+							SDL_SCANCODE_LEFT, SDL_SCANCODE_RIGHT,
+							SDL_SCANCODE_END, SDL_SCANCODE_DOWN, SDL_SCANCODE_PAGEDOWN}};
 		JoystickDef	JoyDefs[MaxJoys];
 		SDL_Joystick	*Joysticks[MaxJoys];
 		SDL_GameController *JoyController[MaxJoys];
@@ -72,68 +74,6 @@
 static	boolean		IN_Started;
 static	boolean		CapsLock;
 static	ScanCode	CurCode,LastCode;
-static	char        ASCIINames[] =		// Unshifted ASCII for scan codes
-					{
-//	 0   1   2   3   4   5   6   7   8   9   A   B   C   D   E   F
-	0  ,27 ,'1','2','3','4','5','6','7','8','9','0','-','=',8  ,9  ,	// 0
-	'q','w','e','r','t','y','u','i','o','p','[',']',13 ,0  ,'a','s',	// 1
-	'd','f','g','h','j','k','l',';',39 ,'`',0  ,92 ,'z','x','c','v',	// 2
-	'b','n','m',',','.','/',0  ,'*',0  ,' ',0  ,0  ,0  ,0  ,0  ,0  ,	// 3
-	0  ,0  ,0  ,0  ,0  ,0  ,0  ,'7','8','9','-','4','5','6','+','1',	// 4
-	'2','3','0',127,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,	// 5
-	0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,	// 6
-	0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0		// 7
-					},
-					ShiftNames[] =		// Shifted ASCII for scan codes
-					{
-//	 0   1   2   3   4   5   6   7   8   9   A   B   C   D   E   F
-	0  ,27 ,'!','@','#','$','%','^','&','*','(',')','_','+',8  ,9  ,	// 0
-	'Q','W','E','R','T','Y','U','I','O','P','{','}',13 ,0  ,'A','S',	// 1
-	'D','F','G','H','J','K','L',':',34 ,'~',0  ,'|','Z','X','C','V',	// 2
-	'B','N','M','<','>','?',0  ,'*',0  ,' ',0  ,0  ,0  ,0  ,0  ,0  ,	// 3
-	0  ,0  ,0  ,0  ,0  ,0  ,0  ,'7','8','9','-','4','5','6','+','1',	// 4
-	'2','3','0',127,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,	// 5
-	0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,	// 6
-	0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0   	// 7
-					},
-					SpecialNames[] =	// ASCII for 0xe0 prefixed codes
-					{
-//	 0   1   2   3   4   5   6   7   8   9   A   B   C   D   E   F
-	0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,	// 0
-	0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,13 ,0  ,0  ,0  ,	// 1
-	0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,	// 2
-	0  ,0  ,0  ,0  ,0  ,'/',0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,	// 3
-	0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,	// 4
-	0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,	// 5
-	0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,	// 6
-	0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0  ,0   	// 7
-					},
-
-					*ScanNames[] =		// Scan code names with single chars
-					{
-	"?","?","1","2","3","4","5","6","7","8","9","0","-","+","?","?",
-	"Q","W","E","R","T","Y","U","I","O","P","[","]","|","?","A","S",
-	"D","F","G","H","J","K","L",";","\"","?","?","?","Z","X","C","V",
-	"B","N","M",",",".","/","?","?","?","?","?","?","?","?","?","?",
-	"?","?","?","?","?","?","?","?","\xf","?","-","\x15","5","\x11","+","?",
-	"\x13","?","?","?","?","?","?","?","?","?","?","?","?","?","?","?",
-	"?","?","?","?","?","?","?","?","?","?","?","?","?","?","?","?",
-	"?","?","?","?","?","?","?","?","?","?","?","?","?","?","?","?"
-					},	// DEBUG - consolidate these
-					*ExtScanNames[] =	// Names corresponding to ExtScanCodes
-					{
-	"Esc","BkSp","Tab","Ctrl","LShft","Space","CapsLk","F1","F2","F3","F4",
-	"F5","F6","F7","F8","F9","F10","F11","F12","ScrlLk","Enter","RShft",
-	"PrtSc","Alt","Home","PgUp","End","PgDn","Ins","Del","NumLk","Up",
-	"Down","Left","Right",""
-					};
-static ScanCode					ExtScanCodes[] =	// Scan codes with >1 char names
-					{
-	1,0xe,0xf,0x1d,0x2a,0x39,0x3a,0x3b,0x3c,0x3d,0x3e,
-	0x3f,0x40,0x41,0x42,0x43,0x44,0x57,0x59,0x46,0x1c,0x36,
-	0x37,0x38,0x47,0x49,0x4f,0x51,0x52,0x53,0x45,0x48,
-	0x50,0x4b,0x4d,0x00
-					};
 static	Direction	DirTable[] =		// Quick lookup for total direction
 					{
 						dir_NorthWest,	dir_North,	dir_NorthEast,
@@ -146,9 +86,17 @@ static	word		DemoOffset,DemoSize;
 
 static	void			(*INL_KeyHook)(void);
 
-static	char			*ParmStrings[] = {"nojoys","nomouse",nil};
+static	char			*ParmStrings[] = {"nojoys","nomouse","swmouse","norightstick","nodpad",nil};
+
+static	int		JoyDisableTo = 0;
+
+// Should we use Right joystick or DPad in SDL_GameController mode?
+boolean rightjoy = true;
+boolean dpadokay = true;
 
 //	Internal routines
+static boolean INL_StartJoy(word joy);
+static void INL_ShutJoy(word joy);
 
 ///////////////////////////////////////////////////////////////////////////
 //
@@ -156,153 +104,63 @@ static	char			*ParmStrings[] = {"nojoys","nomouse",nil};
 //
 ///////////////////////////////////////////////////////////////////////////
 static void
-INL_KeyService(ScanCode k)
+INL_KeyService(ScanCode k, bool pressed)
 {
 static	boolean	special;
-		byte	c, temp;
-	
+	byte	c, temp;
 
-	if (k == 0xe0)		// Special key prefix
-		special = true;
-	else if (k == 0xe1)	// Handle Pause key
-		Paused = true;
-	else
+	if (!pressed)	// Break code
 	{
-		if (k & 0x80)	// Break code
-		{
-			k &= 0x7f;
+		if (k == SDL_SCANCODE_PAUSE)
+			Paused = false;
 
-// DEBUG - handle special keys: ctl-alt-delete, print scrn
-
-			Keyboard[k] = false;
-		}
-		else			// Make code
-		{
-			LastCode = CurCode;
-			CurCode = LastScan = k;
-			Keyboard[k] = true;
-
-			if (special)
-				c = SpecialNames[k];
-			else
-			{
-				if (k == sc_CapsLock)
-				{
-					CapsLock ^= true;
-					// DEBUG - make caps lock light work
-				}
-
-				if (Keyboard[sc_LShift] || Keyboard[sc_RShift])	// If shifted
-				{
-					c = ShiftNames[k];
-					if ((c >= 'A') && (c <= 'Z') && CapsLock)
-						c += 'a' - 'A';
-				}
-				else
-				{
-					c = ASCIINames[k];
-					if ((c >= 'a') && (c <= 'z') && CapsLock)
-						c -= 'a' - 'A';
-				}
-			}
-			if (c)
-				LastASCII = c;
-		}
-
-		special = false;
+		Keyboard[k] = false;
+	}
+	else			// Make code
+	{
+		if (k == SDL_SCANCODE_PAUSE)
+			Paused = true;
+		LastCode = CurCode;
+		CurCode = LastScan = k;
+		Keyboard[k] = true;
 	}
 
-	if (INL_KeyHook && !special)
+	if (INL_KeyHook)
 		INL_KeyHook();
 
 }
-#define INL_MapKey(sdl,in_sc) case sdl: return (in_sc)
 
 ScanCode INL_SDLKToScanCode(int sdlKey)
 {
+	// We want Left/Right keys to behave the same.
 	switch (sdlKey)
 	{
-		INL_MapKey(SDLK_RETURN, sc_Return);
-		INL_MapKey(SDLK_ESCAPE, sc_Escape);
-		INL_MapKey(SDLK_SPACE, sc_Space);
-		INL_MapKey(SDLK_BACKSPACE, sc_BackSpace);
-		INL_MapKey(SDLK_TAB, sc_Tab);
-		INL_MapKey(SDLK_LALT, sc_Alt);
-		INL_MapKey(SDLK_RALT, sc_Alt);
-		INL_MapKey(SDLK_LCTRL, sc_Control);
-		INL_MapKey(SDLK_RCTRL, sc_Control);
-		INL_MapKey(SDLK_CAPSLOCK, sc_CapsLock);
-		INL_MapKey(SDLK_LSHIFT, sc_LShift);
-		INL_MapKey(SDLK_RSHIFT, sc_RShift);
-		INL_MapKey(SDLK_UP, sc_UpArrow);
-		INL_MapKey(SDLK_LEFT, sc_LeftArrow);
-		INL_MapKey(SDLK_RIGHT, sc_RightArrow);
-		INL_MapKey(SDLK_DOWN, sc_DownArrow);
-		INL_MapKey(SDLK_INSERT, sc_Insert);
-		INL_MapKey(SDLK_DELETE, sc_Delete);
-		INL_MapKey(SDLK_HOME, sc_Home);
-		INL_MapKey(SDLK_END, sc_End);
-		INL_MapKey(SDLK_PAGEUP, sc_PgUp);
-		INL_MapKey(SDLK_PAGEDOWN, sc_PgDn);
-		
-		INL_MapKey(SDLK_F1, sc_F1);
-		INL_MapKey(SDLK_F2, sc_F2);
-		INL_MapKey(SDLK_F3, sc_F3);
-		INL_MapKey(SDLK_F4, sc_F4);
-		INL_MapKey(SDLK_F5, sc_F5);
-		INL_MapKey(SDLK_F6, sc_F6);
-		INL_MapKey(SDLK_F7, sc_F7);
-		INL_MapKey(SDLK_F8, sc_F8);
-		INL_MapKey(SDLK_F9, sc_F9);
-		INL_MapKey(SDLK_F10, sc_F10);
-
-		INL_MapKey(SDLK_F11, sc_F11);
-		INL_MapKey(SDLK_F12, sc_F12);
-
-		INL_MapKey(SDLK_a, sc_A);
-		INL_MapKey(SDLK_b, sc_B);
-		INL_MapKey(SDLK_c, sc_C);
-		INL_MapKey(SDLK_d, sc_D);
-		INL_MapKey(SDLK_e, sc_E);
-		INL_MapKey(SDLK_f, sc_F);
-		INL_MapKey(SDLK_g, sc_G);
-		INL_MapKey(SDLK_h, sc_H);
-		INL_MapKey(SDLK_i, sc_I);
-		INL_MapKey(SDLK_j, sc_J);
-		INL_MapKey(SDLK_k, sc_K);
-		INL_MapKey(SDLK_l, sc_L);
-		INL_MapKey(SDLK_m, sc_M);
-		INL_MapKey(SDLK_n, sc_N);
-		INL_MapKey(SDLK_o, sc_O);
-		INL_MapKey(SDLK_p, sc_P);
-		INL_MapKey(SDLK_q, sc_Q);
-		INL_MapKey(SDLK_r, sc_R);
-		INL_MapKey(SDLK_s, sc_S);
-		INL_MapKey(SDLK_t, sc_T);
-		INL_MapKey(SDLK_u, sc_U);
-		INL_MapKey(SDLK_v, sc_V);
-		INL_MapKey(SDLK_w, sc_W);
-		INL_MapKey(SDLK_x, sc_X);
-		INL_MapKey(SDLK_y, sc_Y);
-		INL_MapKey(SDLK_z, sc_Z);
-		
-		INL_MapKey(SDLK_0, sc_0);
-		INL_MapKey(SDLK_1, sc_1);
-		INL_MapKey(SDLK_2, sc_2);
-		INL_MapKey(SDLK_3, sc_3);
-		INL_MapKey(SDLK_4, sc_4);
-		INL_MapKey(SDLK_5, sc_5);
-		INL_MapKey(SDLK_6, sc_6);
-		INL_MapKey(SDLK_7, sc_7);
-		INL_MapKey(SDLK_8, sc_8);
-		INL_MapKey(SDLK_9, sc_9);
-		
-		INL_MapKey(SDLK_PAUSE, 0xe1);
-	default: return sc_Bad;
+	case SDLK_RCTRL:
+		return SDL_SCANCODE_LCTRL;
+	case SDLK_RALT:
+		return SDL_SCANCODE_LALT;
+	case SDLK_RGUI:
+		return SDL_SCANCODE_LGUI;
+	case SDLK_LSHIFT:
+		return SDL_SCANCODE_RSHIFT; 
+	case SDLK_KP_ENTER:
+		// "KP Enter" is too large to fit in the config screen,
+		// and I can't think of a shorter name that's not ambiguous.
+		return SDL_SCANCODE_RETURN;
+	default:
+		return SDL_GetScancodeFromKey(sdlKey);
 	}
 }
 
-#undef INL_MapKey
+
+static int wheel = 0;
+
+int IN_ReadWheel()
+{
+	int w = wheel;
+	wheel = 0;
+	return w;
+}
 
 ///////////////////////////////////////////////////////////////////////////
 //
@@ -323,11 +181,41 @@ static void INL_HandleSDLEvent(SDL_Event *event)
 		break;
 	case SDL_KEYDOWN:
 		sc = INL_SDLKToScanCode(event->key.keysym.sym);
-		INL_KeyService(sc);
+		INL_KeyService(sc, true);
 		break;
 	case SDL_KEYUP:
 		sc = INL_SDLKToScanCode(event->key.keysym.sym);
-		INL_KeyService(sc | 0x80);
+		INL_KeyService(sc, false);
+		break;
+	case SDL_TEXTINPUT:
+		// If the character is ASCII...
+		if (event->text.text[0] < 0x80)
+			LastASCII = event->text.text[0];
+		break;
+	case SDL_MOUSEWHEEL:
+		wheel += event->wheel.y;
+		break;
+	case SDL_CONTROLLERBUTTONDOWN:
+		if (event->cbutton.button == SDL_CONTROLLER_BUTTON_START)
+			INL_KeyService(sc_Escape, true);
+		break;
+	case SDL_CONTROLLERBUTTONUP:
+		if (event->cbutton.button == SDL_CONTROLLER_BUTTON_START)
+			INL_KeyService(sc_Escape, false);
+		break;
+	case SDL_CONTROLLERDEVICEADDED:
+		if (!JoysPresent[event->cdevice.which])
+			INL_StartJoy(event->cdevice.which);
+		break;
+	case SDL_CONTROLLERDEVICEREMOVED:
+		{
+		SDL_JoystickID jid = event->cdevice.which;
+		INL_StartJoy(event->cdevice.which);
+		if (JoysPresent[0] && SDL_JoystickInstanceID(Joysticks[0]) == jid)
+			INL_ShutJoy(0);
+		if (JoysPresent[1] && SDL_JoystickInstanceID(Joysticks[1]) == jid)
+			INL_ShutJoy(1);
+		}
 		break;
 	}
 }
@@ -374,20 +262,85 @@ INL_GetMouseButtons(void)
 //	IN_GetJoyAbs() - Reads the absolute position of the specified joystick
 //
 ///////////////////////////////////////////////////////////////////////////
+#define XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE  7849
+#define XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE 8689
+#define DO_DEADZONE(val, zone) (((val)*(val) < (zone)*(zone))?0:val) 
 void
 IN_GetJoyAbs(word joy,int *xp,int *yp)
 {
-	int AxisX = 0;
-	int AxisY = 1;
 	if (JoyController[joy])
 	{
-		AxisX = SDL_GameControllerGetAxis(JoyController[joy], SDL_CONTROLLER_AXIS_LEFTX);
-		AxisY = SDL_GameControllerGetAxis(JoyController[joy], SDL_CONTROLLER_AXIS_LEFTY);
+		int DPadUsed = 0;
+		// Controller D-Pad bindings.
+		if (dpadokay && SDL_GameControllerGetButton(JoyController[joy], SDL_CONTROLLER_BUTTON_DPAD_UP) && yp)
+		{
+			*yp = -127;
+			DPadUsed = 1;
+		}
+		else if (dpadokay && SDL_GameControllerGetButton(JoyController[joy], SDL_CONTROLLER_BUTTON_DPAD_DOWN) && yp)
+		{
+			*yp = 127;
+			DPadUsed = 1;
+		}
+		if (dpadokay && SDL_GameControllerGetButton(JoyController[joy], SDL_CONTROLLER_BUTTON_DPAD_LEFT) && xp)
+		{
+			*xp = -127;
+			DPadUsed = 1;
+		}
+		else if (dpadokay && SDL_GameControllerGetButton(JoyController[joy], SDL_CONTROLLER_BUTTON_DPAD_RIGHT) && xp)
+		{
+			*xp = 127;
+			DPadUsed = 1;
+		}
+		
+		if (DPadUsed) return;
+
+		if (xp)
+		{
+			int val = SDL_GameControllerGetAxis(JoyController[joy], SDL_CONTROLLER_AXIS_LEFTX);
+			*xp = DO_DEADZONE(val, XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE);
+		}
+		if (yp)
+		{
+			int val = SDL_GameControllerGetAxis(JoyController[joy], SDL_CONTROLLER_AXIS_LEFTY);
+			*yp = DO_DEADZONE(val, XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE);
+		}
+		if (rightjoy && xp)
+		{
+			int val = SDL_GameControllerGetAxis(JoyController[joy], SDL_CONTROLLER_AXIS_RIGHTX);
+			*xp += DO_DEADZONE(val, XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE);
+		}
+		if (rightjoy && yp)
+		{
+			int val = SDL_GameControllerGetAxis(JoyController[joy], SDL_CONTROLLER_AXIS_RIGHTY);
+			*yp += DO_DEADZONE(val, XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE);
+		}
+
 	}
-	if (xp)
-		*xp = SDL_JoystickGetAxis(Joysticks[joy], AxisX);
-	if (yp)
-		*yp = SDL_JoystickGetAxis(Joysticks[joy], AxisY);
+	else
+	{
+		const int AxisX = 0;
+		const int AxisY = 1;
+		if (xp)
+			*xp = SDL_JoystickGetAxis(Joysticks[joy], AxisX);
+		if (yp)
+			*yp = SDL_JoystickGetAxis(Joysticks[joy], AxisY);
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////
+//
+//	IN_IsJoyController() - Returns true if joy is an SDL_GameController 
+//
+///////////////////////////////////////////////////////////////////////////
+int
+IN_IsJoyController(word joy)
+{
+	if (JoyController[joy])
+	{
+		return 1; 
+	}
+	return 0;
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -419,6 +372,12 @@ IN_GetJoyName(word joy)
 static void
 INL_GetJoyDelta(word joy,int *dx,int *dy,boolean adaptive)
 {
+	IN_GetJoyAbs(joy, dx, dy);
+	// Clamp
+	if (*dx > 127) *dx = 127;
+	if (*dy > 127) *dy = 127;
+	if (*dx < -127) *dx = -127;
+	if (*dy < -127) *dy = -127;
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -430,13 +389,36 @@ INL_GetJoyDelta(word joy,int *dx,int *dy,boolean adaptive)
 static word
 INL_GetJoyButtons(word joy)
 {
-	int buttonA = 0, buttonB = 1;
+	// No buttons are pressed if we've disabled them for a period.
+	if (SDL_GetTicks() < JoyDisableTo) return 0;
+
 	if (JoyController[joy])
 	{
-		buttonA = SDL_GameControllerGetButton(JoyController[joy], SDL_CONTROLLER_BUTTON_A);
-		buttonB = SDL_GameControllerGetButton(JoyController[joy], SDL_CONTROLLER_BUTTON_B);
+		word result = 0;
+		result |= SDL_GameControllerGetButton(JoyController[joy], SDL_CONTROLLER_BUTTON_A);
+		result |= (SDL_GameControllerGetButton(JoyController[joy], SDL_CONTROLLER_BUTTON_B) << 1);
+
+		// Also check X/Y for GameController configs.
+		result |= SDL_GameControllerGetButton(JoyController[joy], SDL_CONTROLLER_BUTTON_Y);
+		result |= (SDL_GameControllerGetButton(JoyController[joy], SDL_CONTROLLER_BUTTON_X) << 1);
+		return result;
 	}
-	return (SDL_JoystickGetButton(Joysticks[joy], buttonA) | SDL_JoystickGetButton(Joysticks[joy],buttonB) << 1);
+	else
+	{
+		const int buttonA = 0, buttonB = 1;
+		return (SDL_JoystickGetButton(Joysticks[joy], buttonA) | SDL_JoystickGetButton(Joysticks[joy],buttonB) << 1);
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////
+//
+//	IN_SetJoyDelay() - Disables joystick buttons for ms milliseconds
+//
+///////////////////////////////////////////////////////////////////////////
+void
+IN_SetJoyDelay(int ms)
+{
+	JoyDisableTo = SDL_GetTicks() + ms;
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -449,6 +431,19 @@ word
 IN_GetJoyButtonsDB(word joy)
 {
 	return INL_GetJoyButtons(joy);
+}
+
+int
+IN_GetAllJoyButtons(word joy)
+{
+	int numButtons = SDL_JoystickNumButtons(Joysticks[joy]);
+	int i;
+	for (i = 0; i < numButtons; ++i)
+	{
+		if (SDL_JoystickGetButton(Joysticks[joy], i))
+			return i + 1;
+	}
+	return 0;
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -548,6 +543,7 @@ IN_SetupJoy(word joy,word minx,word maxx,word miny,word maxy)
 //					The auto-config assumes the joystick is centered
 //
 ///////////////////////////////////////////////////////////////////////////
+extern int			CursorX,CursorY;
 static boolean
 INL_StartJoy(word joy)
 {
@@ -566,6 +562,21 @@ INL_StartJoy(word joy)
 
 	IN_GetJoyAbs(joy, &x, &y);
 
+	JoysPresent[joy] = true;
+
+
+	if (IN_Started)	
+	{
+		US_FlushOnHotplug();
+
+		// TODO: properly convert coordinates.
+		VW_HideCursor();
+		VW_SetCursor(0);
+		cursorhw = false;
+		VW_SetCursor(CURSORARROWSPR);
+		VW_ShowCursor();
+	}
+
 	//IN_SetupJoy(joy, 0, x*2, 0, y*2);
 	return(true);
 }
@@ -579,9 +590,15 @@ static void
 INL_ShutJoy(word joy)
 {
 	JoysPresent[joy] = false;
-	SDL_JoystickClose(Joysticks[joy]);
 	if (JoyController[joy])
 		SDL_GameControllerClose(JoyController[joy]);
+	SDL_JoystickClose(Joysticks[joy]);
+
+	// If we unplug the joystick in use, make the keyboard the default input.
+	if (Controls[0] == ctrl_Joystick + joy)
+		Controls[0] = ctrl_Keyboard;
+
+	US_FlushOnHotplug();
 }
 
 //	Public routines
@@ -611,6 +628,14 @@ IN_Startup(void)
 			break;
 		case 1:
 			checkmouse = false;
+		case 2:
+			cursorhw = false;
+			break;
+		case 3:
+			rightjoy = false;
+			break;
+		case 4:
+			dpadokay = false;
 			break;
 		}
 	}
@@ -622,6 +647,9 @@ IN_Startup(void)
 
 	for (i = 0;i < MaxJoys;i++)
 		JoysPresent[i] = checkjoys? INL_StartJoy(i) : false;
+
+	for (i = 0;i < MaxJoys;i++)
+		if (JoysPresent[i]) cursorhw = false;
 
 	IN_Started = true;
 }
@@ -688,6 +716,10 @@ IN_ClearKeysDown(void)
 	LastASCII = key_None;
 	for (i = 0;i < NumCodes;i++)
 		Keyboard[i] = false;
+
+	// davidgow - This is also a good place to reset the mouse cursor.
+	// (Thanks NY00123)
+	SDL_GetRelativeMouseState(NULL, NULL);
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -718,7 +750,8 @@ IN_ReadCursor(CursorInfo *info)
 {
 	word	i,
 			buttons;
-	int		dx,dy;
+	int		dx = 0;
+	int		dy = 0;
 
 	info->x = info->y = 0;
 	info->button0 = info->button1 = false;
@@ -832,8 +865,8 @@ register	KeyboardDef	*def;
 			break;
 		case ctrl_Joystick1:
 		case ctrl_Joystick2:
-			//INL_GetJoyDelta(type - ctrl_Joystick,&dx,&dy,false);
-			IN_GetJoyAbs(type - ctrl_Joystick, &dx, &dy);
+			INL_GetJoyDelta(type - ctrl_Joystick,&dx,&dy,false);
+			//IN_GetJoyAbs(type - ctrl_Joystick, &dx, &dy);
 			buttons = INL_GetJoyButtons(type - ctrl_Joystick);
 			realdelta = true;
 			break;
@@ -969,14 +1002,42 @@ IN_FreeDemoBuffer(void)
 char *
 IN_GetScanName(ScanCode scan)
 {
-	char		**p;
-	ScanCode	*s;
-
-	for (s = ExtScanCodes,p = ExtScanNames;*s;p++,s++)
-		if (*s == scan)
-			return(*p);
-
-	return(ScanNames[scan]);
+	// Not all SDL names fit in the boxes. Make sure at least the default
+	// ones do.
+	switch (scan)
+	{
+	case SDL_SCANCODE_LCTRL:
+		return "Ctrl";
+	case SDL_SCANCODE_LALT:
+		return "Alt";
+	case SDL_SCANCODE_RSHIFT:
+		return "Shift";
+	case SDL_SCANCODE_PAGEUP:
+		return "PgUp";
+	case SDL_SCANCODE_PAGEDOWN:
+		return "PgDn";
+	case SDL_SCANCODE_LGUI:
+		return "GUI";
+	case SDL_SCANCODE_CAPSLOCK:
+		return "CapsLk";
+	case SDL_SCANCODE_NUMLOCKCLEAR:
+		return "NumLk";
+	case SDL_SCANCODE_SCROLLLOCK:
+		return "ScrlLk";
+	case SDL_SCANCODE_BACKSPACE:
+		return "BkSp";
+	case SDL_SCANCODE_RETURN:
+		return "Enter";
+	default:
+		if (scan >= SDL_SCANCODE_KP_DIVIDE && scan <= SDL_SCANCODE_KP_PERIOD)
+		{
+			static char newname[256] = {0};
+			strcpy(newname, "KP ");
+			strcat(newname, SDL_GetScancodeName(scan) + 7);
+			return newname;
+		}
+		return(SDL_GetScancodeName(scan));
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -1045,7 +1106,14 @@ IN_AckBack(void)
 			if (INL_GetMouseButtons())
 			{
 				while (INL_GetMouseButtons())
-					;
+				{
+					SDL_Event evt;
+					if (SDL_PollEvent(&evt))
+					{
+						INL_HandleSDLEvent(&evt);
+					}
+					VW_GL_Present();
+				}
 				return;
 			}
 		}
@@ -1057,7 +1125,14 @@ IN_AckBack(void)
 				if (IN_GetJoyButtonsDB(i))
 				{
 					while (IN_GetJoyButtonsDB(i))
-						;
+					{
+						SDL_Event evt;
+						if (SDL_PollEvent(&evt))
+						{
+							INL_HandleSDLEvent(&evt);
+						}
+						VW_GL_Present();
+					}
 					return;
 				}
 			}
@@ -1085,11 +1160,25 @@ IN_Ack(void)
 
 	if (MousePresent)
 		while (INL_GetMouseButtons())
-					;
+		{
+			SDL_Event evt;
+			if (SDL_PollEvent(&evt))
+			{
+				INL_HandleSDLEvent(&evt);
+			}
+			VW_GL_Present();
+		}
 	for (i = 0;i < MaxJoys;i++)
 		if (JoysPresent[i])
 			while (IN_GetJoyButtonsDB(i))
-				;
+			{
+				SDL_Event evt;
+				if (SDL_PollEvent(&evt))
+				{
+					INL_HandleSDLEvent(&evt);
+				}
+				VW_GL_Present();
+			}
 
 	IN_AckBack();
 }
@@ -1145,6 +1234,7 @@ IN_UserInput(longword delay,boolean clear)
 				IN_AckBack();
 			return(true);
 		}
+		VW_GL_Present();
 	} while (SD_GetTimeCount() - lasttime < delay);
 	return(false);
 }

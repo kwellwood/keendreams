@@ -1,5 +1,6 @@
-/* Keen Dreams Source Code
+/* Keen Dreams (SDL2/Steam Port) Source Code
  * Copyright (C) 2014 Javier M. Chavez
+ * Copyright (C) 2015 David Gow <david@davidgow.net>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,7 +34,7 @@
 =============================================================================
 */
 
-#define CREDITS 0
+#define CREDITS 1
 
 #define	MAXACTORS	MAXSPRITES
 
@@ -134,32 +135,33 @@ typedef struct	objstruct
 } objtype;
 
 
-struct BitMapHeader {
+PACKED_notypedef(BitMapHeader)
+{
 	uint16_t w,h,x,y;
 	unsigned char	d,trans,comp,pad;
-}__attribute__((__packed__));
+};
 
-struct BitMap {
+PACKED_notypedef(BitMap) {
 	uint16_t Width;
 	uint16_t Height;
 	uint16_t Depth;
 	uint16_t BytesPerRow;
 	char far *Planes[8];
-}__attribute__((__packed__));
+};
 
-struct Shape {
+PACKED_notypedef(Shape) {
 	memptr Data;
 	uint32_t size;
 	uint16_t BPR;
 	struct BitMapHeader bmHdr;
-}__attribute__((__packed__));
+};
 
-typedef struct {
+PACKED(BufferedIO) {
 	int handle;			// handle of file
 	memptr buffer;		// pointer to buffer
 	word offset;		// offset into buffer
 	word status;		// read/write status
-} __attribute__((__packed__)) BufferedIO;
+} BufferedIO;
 
 
 

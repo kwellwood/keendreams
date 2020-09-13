@@ -15,7 +15,9 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#ifndef _MSC_VER
 #include <unistd.h>
+#endif
 #include <stdint.h>
 #include "kd_def.h"
 
@@ -286,13 +288,13 @@ uint32_t ReadU32(int file)
 uint16_t ObjToInt(objtype *obj)
 {
 	if (!obj) return 0;
-	return (uint16_t)(obj - player);
+	return (uint16_t)(obj - player) + 1;
 }
 
 objtype *IntToObj(uint16_t obj)
 {
 	if (!obj) return 0;
-	return player + obj;
+	return player + (obj-1);
 }
 
 uint16_t StateToInt(statetype *state)

@@ -1,5 +1,6 @@
-/* Keen Dreams Source Code
+/* Keen Dreams (SDL2/Steam Port) Source Code
  * Copyright (C) 2014 Javier M. Chavez
+ * Copyright (C) 2015 David Gow <david@davidgow.net>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,6 +34,7 @@ updated
 */
 
 #include "id_heads.h"
+#include <SDL2/SDL_timer.h>
 #pragma hdrstop
 
 /*
@@ -84,7 +86,7 @@ unsigned	SX_T_SHIFT;		// screen x >> ?? = tile EGA = 1, CGA = 2;
 =============================================================================
 */
 
-typedef	struct __attribute__((__packed__)) spriteliststruct
+PACKED(spriteliststruct)
 {
 	int16_t 		screenx,screeny;
 	int16_t			width,height;
@@ -97,7 +99,7 @@ typedef	struct __attribute__((__packed__)) spriteliststruct
 } spritelisttype;
 
 
-typedef struct __attribute__((__packed__))
+PACKED(s_eraseblocktype)
 {
 	int16_t			screenx,screeny;
 	int16_t			width,height;
@@ -295,6 +297,8 @@ void RF_Startup (void)
 				*blockstart++ = SCREENWIDTH*16*y+x*TILEWIDTH;
 
 		xpanmask = 6;	// dont pan to odd pixels
+		if (fakecga)
+			xpanmask = 4;
 	}
 
 	else if (grmode == CGAGR)
@@ -1295,7 +1299,8 @@ linknewspot:
 	pixx = globalx >> G_SY_SHIFT;
 	shift = 0;//(pixx&7)/2;
 
-	int shiftMask = ~(4-spr->shifts) & ~1;
+	int shiftMask = fakecga?(~3):(~(4-spr->shifts) & ~1);
+	if (g_minTics == 1) shiftMask=~0;
 	sprite->screenx = (globalx >> (G_SY_SHIFT)) & shiftMask;
 	sprite->screeny = globaly >> G_SY_SHIFT;
 	sprite->width = spr->width * 8;
@@ -1597,7 +1602,7 @@ redraw:
 			switch (sprite->draw)
 			{
 			case spritedraw:
-				VW_RawBlitToScreen (grsegs[sprite->grseg] + sourceofs*8,
+				VW_RawBlitToScreen ((byte *)grsegs[sprite->grseg] + sourceofs*8,
 					dest,sprite->width,height);
 				break;
 
@@ -1707,6 +1712,7 @@ asm	mov	[WORD PTR es:di],UPDATETERMINATE
 		newtime = SD_GetTimeCount();
 		IN_PumpEvents();
 		tics = newtime-lasttimecount;
+		if (tics < MINTICS) SDL_Delay(10 * (MINTICS - tics));
 	} while (tics<MINTICS);
 	lasttimecount = newtime;
 

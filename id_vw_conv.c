@@ -1,21 +1,20 @@
-/*
-Omnispeak: A Commander Keen Reimplementation
-Copyright (C) 2012 David Gow <david@ingeniumdigital.com>
-
-This program is free software; you can redistribute it and/or
-modify it under the terms of the GNU General Public License
-as published by the Free Software Foundation; either version 2
-of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
-*/
+/* Keen Dreams (SDL2/Steam Port) Source Code
+ * Copyright (C) 2012 David Gow <david@davidgow.net>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
 
 // ID_VW_CONV: This contains code (that I originally wrote for Omnispeak) for
 // converting EGA planar data to VGA data or RGBA.
@@ -43,6 +42,8 @@ const uint8_t VW_EGAPalette[16][3] = {
 	0xff, 0xff, 0x55, // Yellow
 	0xff, 0xff, 0xff, // White
 };
+
+uint8_t VW_CurrentRGBPalette[16][3] = {0};
 
 void VW_UnmaskedToPAL8(void *src,void *dest, int x, int y, int pitch, int w, int h)
 {
@@ -112,9 +113,9 @@ void VW_PAL8ScaleToRGBA(void *src,void *dest, int xscale, int yscale, int pitch,
 				for(int dx = 0; dx < xscale; ++dx)
 				{
 					size_t pixcoord = (sy*yscale+dy)*pitch+(sx*xscale+dx)*4;
-					dstptr[pixcoord+0] = VW_EGAPalette[pixel][2];
-					dstptr[pixcoord+1] = VW_EGAPalette[pixel][1];
-					dstptr[pixcoord+2] = VW_EGAPalette[pixel][0];
+					dstptr[pixcoord+0] = (pixel == 255)?0:VW_CurrentRGBPalette[pixel][2];
+					dstptr[pixcoord+1] = (pixel == 255)?0:VW_CurrentRGBPalette[pixel][1];
+					dstptr[pixcoord+2] = (pixel == 255)?0:VW_CurrentRGBPalette[pixel][0];
 					dstptr[pixcoord+3] = (pixel == 255)?0x00:0xFF;
 				}
 			}
@@ -148,9 +149,9 @@ void VW_MaskedScaleToRGBA(void *src,void *dest, int xscale, int yscale, int pitc
 				for(int dx = 0; dx < xscale; ++dx)
 				{
 					size_t pixcoord = (sy*yscale+dy)*pitch+(sx*xscale+dx)*4;
-					dstptr[pixcoord+0] = VW_EGAPalette[pixel][2];
-					dstptr[pixcoord+1] = VW_EGAPalette[pixel][1];
-					dstptr[pixcoord+2] = VW_EGAPalette[pixel][0];
+					dstptr[pixcoord+0] = VW_CurrentRGBPalette[pixel][2];
+					dstptr[pixcoord+1] = VW_CurrentRGBPalette[pixel][1];
+					dstptr[pixcoord+2] = VW_CurrentRGBPalette[pixel][0];
 					dstptr[pixcoord+3] = ((srcptr_a[plane_off] & plane_bit)?0x00:0xFF);
 				}
 			}

@@ -1,37 +1,25 @@
-//
-//      ID Engine
-//      ID_SD.c - Sound Manager for Wolfenstein 3D
-//      v1.2
-//      By Jason Blochowiak
-//
-
-//
-//      This module handles dealing with generating sound on the appropriate
-//              hardware
-//
-//      Depends on: User Mgr (for parm checking)
-//
-//      Globals:
-//              For User Mgr:
-//                      SoundBlasterPresent - SoundBlaster card present?
-//                      AdLibPresent - AdLib card present?
-//                      SoundMode - What device is used for sound effects
-//                              (Use SM_SetSoundMode() to set)
-//                      MusicMode - What device is used for music
-//                              (Use SM_SetMusicMode() to set)
-//                      DigiMode - What device is used for digitized sound effects
-//                              (Use SM_SetDigiDevice() to set)
-//
-//              For Cache Mgr:
-//                      NeedsDigitized - load digitized sounds?
-//                      NeedsMusic - load music?
-//
-
+/*
+ * Keen Dreams SDL2 / Steam port
+ * Copyright (C) 2015 David Gow <david@ingeniumdigital.com>
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ */
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include <SDL2/SDL.h>
-#include "opl/dbopl.h"
 
 #include "id_heads.h"
 
@@ -61,50 +49,17 @@ uint8_t **SoundTable;
 uint8_t pcLastSample, *pcSound;
 uint32_t pcLengthLeft;
 uint16_t pcSoundLookup[255];
-// Sort of replacements for x86 behaviors and assembly code
-static boolean SD_PC_Speaker_On;
-static int16_t SD_SDL_CurrentBeepSample;
-static uint32_t SD_SDL_BeepHalfCycleCounter, SD_SDL_BeepHalfCycleCounterUpperBound;
-
-// AdLib variables
-boolean alNoCheck;
-uint8_t *alSound;
-uint16_t alBlock;
-uint32_t alLengthLeft;
-uint32_t alTimeCount;
-Instrument alZeroInst;
 
 boolean quiet_sfx;
-
-// This table maps channel numbers to carrier and modulator op cells
-static uint8_t carriers[9] =  { 3, 4, 5,11,12,13,19,20,21},
-               modifiers[9] = { 0, 1, 2, 8, 9,10,16,17,18},
-// This table maps percussive voice numbers to op cells
-               pcarriers[5] = {19,0xff,0xff,0xff,0xff},
-               pmodifiers[5] = {16,17,18,20,21};
-
-// Sequencer variables
-boolean sqActive;
-static uint16_t alFXReg; // Apparently always 0
-static ActiveTrack *tracks[sqMaxTracks];
-uint16_t *sqHack, *sqHackPtr, sqHackLen, sqHackSeqLen;
-int32_t sqHackTime;
 
 // WARNING: These vars refer to the libSDL library!!!
 SDL_AudioSpec SD_SDL_AudioSpec;
 static boolean SD_SDL_AudioSubsystem_Up;
 static uint32_t SD_SDL_SampleOffsetInSound, SD_SDL_SamplesPerPart/*, SD_SDL_MusSamplesPerPart*/;
+static int SD_CurrentSoundChunk;
 
-// Used for filling with samples from alOut (alOut_lLw), in addition
-// to SD_SDL_CallBack (because waits between/after AdLib writes are expected)
-static int16_t SD_ALOut_Samples[512];
-static uint32_t SD_ALOut_SamplesStart = 0, SD_ALOut_SamplesEnd = 0;
 
-/******************************************************************
-Timing subsection.
-Originally SDL_t0Service is responsible for incrementing TimeCount.
-/*****************************************************************/
-
+// Timing stuff from Omnispeak (thanks NY00123).
 longword	TimeCount;					// Global time in ticks
 uint16_t SpriteSync = 0;
 // PIT timer divisor, scaled (bt 8 if music is on, 2 otherwise)
@@ -134,178 +89,27 @@ void SD_SetLastTimeCount(int32_t newval) { lasttimecount = newval; }
 uint16_t SD_GetSpriteSync(void) { return SpriteSync; }
 void SD_SetSpriteSync(uint16_t newval) { SpriteSync = newval; }
 
-/*******************************************************************************
-OPL emulation, powered by dbopl from DOSBox and using bits of code from Wolf4SDL
-*******************************************************************************/
-
-Chip oplChip;
-
-static inline boolean YM3812Init(int numChips, int clock, int rate)
-{
-	DBOPL_InitTables();
-	Chip__Chip(&oplChip);
-	Chip__Setup(&oplChip, rate);
-	return false;
-}
-
-static inline void YM3812Write(Chip *which, Bit32u reg, Bit8u val)
-{
-	Chip__WriteReg(which, reg, val);
-}
-
-static inline void YM3812UpdateOne(Chip *which, int16_t *stream, int length)
-{
-	Bit32s buffer[512 * 2];
-	int i;
-
-	// length is at maximum samplesPerMusicTick = param_samplerate / 700
-	// so 512 is sufficient for a sample rate of 358.4 kHz (default 44.1 kHz)
-	if(length > 512)
-		length = 512;
-#if 0
-	if(which->opl3Active)
-	{
-		Chip__GenerateBlock3(which, length, buffer);
-
-		// GenerateBlock3 generates a number of "length" 32-bit stereo samples
-		// so we need to convert them to 16-bit mono samples
-		for(i = 0; i < length; i++)
-		{
-			// Scale volume and pick one channel
-			Bit32s sample = 2*buffer[2*i];
-			if(sample > 16383) sample = 16383;
-			else if(sample < -16384) sample = -16384;
-			stream[i] = sample;
-		}
-	}
-	else
-#endif
-	{
-		Chip__GenerateBlock2(which, length, buffer);
-
-		// GenerateBlock2 generates a number of "length" 32-bit mono samples
-		// so we only need to convert them to 16-bit mono samples
-		for(i = 0; i < length; i++)
-		{
-			// Scale volume
-			Bit32s sample = 2*buffer[i];
-			if(sample > 16383) sample = 16383;
-			else if(sample < -16384) sample = -16384;
-			stream[i] = (int16_t) sample;
-		}
-	}
-}
-
-void alOut_Low(uint8_t reg, uint8_t val)
-{
-	// FIXME: The original code for alOut adds 6 reads of the register port
-	// after writing to it (3.3 microseconds), and then 35 more reads of
-	// the register port after writing to the data port (23 microseconds).
-	//
-	// It is apparently important for a portion of the fuse breakage sound
-	// at the least. For now a hack is implied.
-	YM3812Write(&oplChip, reg, val);
-	// Hack comes with a "magic number" that appears to make it work better
-	int length = SD_SDL_AudioSpec.freq / 10000;
-	if (length > sizeof(SD_ALOut_Samples)/sizeof(int16_t) - SD_ALOut_SamplesEnd)
-		length = sizeof(SD_ALOut_Samples)/sizeof(int16_t) - SD_ALOut_SamplesEnd;
-	if (length)
-	{
-		YM3812UpdateOne(&oplChip, &SD_ALOut_Samples[SD_ALOut_SamplesEnd], length);
-		SD_ALOut_SamplesEnd += length;
-	}
-}
-
-/* NEVER call this from the SDL callback!!! (Or you want a deadlock?) */
-void alOut(uint8_t reg, uint8_t val)
-{
-	if (SD_SDL_AudioSubsystem_Up)
-		SDL_LockAudio();
-	alOut_Low(reg, val);
-	if (SD_SDL_AudioSubsystem_Up)
-		SDL_UnlockAudio();
-}
-
-/************************************************************************
-PC Speaker emulation; The function mixes audio
-into an EXISTING stream (of OPL sound data)
-ASSUMPTION: The speaker is outputting sound (PCSpeakerUpdateOne == true).
-************************************************************************/
-static inline void PCSpeakerUpdateOne(int16_t *stream, int length)
-{
-	int loopVar;
-	for (loopVar = 0; loopVar < length; loopVar++, stream++)
-	{
-		*stream = (*stream + SD_SDL_CurrentBeepSample) / 2; // Mix
-		SD_SDL_BeepHalfCycleCounter += 2 * PC_PIT_RATE;
-		if (SD_SDL_BeepHalfCycleCounter >= SD_SDL_BeepHalfCycleCounterUpperBound)
-		{
-			SD_SDL_BeepHalfCycleCounter %= SD_SDL_BeepHalfCycleCounterUpperBound;
-			// 32767 - too loud
-			SD_SDL_CurrentBeepSample = 24575-SD_SDL_CurrentBeepSample;
-		}
-	}
-}
-
-
-/* TODO: List of functions from vanilla Keen 5 to filter
- * (not all to be implemented):
- * SDL_SetTimer0
- * SDL_SetIntsPerSecond
- * int_handler_1 (Never used?)
- * SDL_PCPlaySound
- * SDL_PCStopSound
- * SDL_PCService (called from SDL_t0Service)
- * SDL_ShutPC
- * alOut
- * SDL_ALStopSound
- * SDL_AlSetFXInst
- * SDL_ALPlaySound
- * SDL_ALSoundService (called from SDL_t0Service)
- * SDL_ALService (called from SDL_t0Service)
- * SDL_ShutAL
- * SDL_CleanAL
- * SDL_StartAL
- * SDL_DetectAdlib
- * SDL_t0Service (called at a rate of about 140Hz (no music) or 560Hz (music on)
- * SDL_ShutDevice
- * SDL_CleanDevice
- * SDL_StartDevice
- * SDL_SetTimerSpeed (140Hz with no music, 560Hz with music)
- *
- * SD_SetSoundMode
- * SD_SetMusicMode
- * SD_Startup
- * SD_Default (Called from load_config, picks defaults based on available hardware and more)
- * SD_Shutdown
- * SD_SetUserHook (apparently called only by sub_25CF8 - which is unused?)
- * SD_PlaySound
- * SD_SoundPlaying
- * SD_StopSound
- * SD_WaitSoundDone
- * SD_MusicOn
- * SD_MusicOff
- * SD_StartMusic
- * SD_FadeOutMusic
- * SD_MusicPlaying
- *
- * For now we'd implement:
- * SDL_PCPlaySound, SDL_PCStopSound, SDL_ShutPC,
- * SDL_ShutDevice, SDL_CleanDevice, SDL_StartDevice,
- *
- * SD_SetSoundMode,
- * SD_Startup (partial), SD_Default (partial), SD_Shutdown (partial),
- * SD_PlaySound, SD_SoundPlaying, SD_StopSound, SD_WaitSoundDone
- */
-
-/* FIXME: The SDL prefix may conflict with SDL functions in the future(???)
- * Best (but hackish) solution, if it happens: Add our own custom prefix.
- */
 
 void SDL_t0Service(void);
 
-// WARNING: This function refers to the libSDL library!!!
-/* BIG BIG FIXME: This is the VERY wrong place to call the OPL emulator, etc! */
+int16_t soundPrev = 0, soundDiff = 0;
+
+static SDL_mutex *sd_mutex;
+
+// Custom DPCM decoder (cut filesize in half)
+void SD_SDL_DecodeSound(int16_t *dest, int16_t *src, int lenInSamples)
+{
+	while (lenInSamples--)
+	{
+		*dest = (*src + soundPrev) + soundDiff;
+		soundDiff = *dest - soundPrev;
+		soundPrev = *dest;
+		src++;
+		dest++;
+	}
+}
+
+
 void SD_SDL_CallBack(void *unused, Uint8 *stream, int len)
 {
 	int16_t *currSamplePtr = (int16_t *)stream;
@@ -314,47 +118,23 @@ void SD_SDL_CallBack(void *unused, Uint8 *stream, int len)
 #if SDL_VERSION_ATLEAST(1,3,0)
 	memset(stream, 0, len);
 #endif
-	while (len)
+	SDL_LockMutex(sd_mutex);
+	if (!SoundPriority)
 	{
-		if (!SD_SDL_SampleOffsetInSound)
-		{
-			SDL_t0Service();
-		}
-		// Now generate sound
-		isPartCompleted = (len >= 2*(SD_SDL_SamplesPerPart-SD_SDL_SampleOffsetInSound));
-		currNumOfSamples = isPartCompleted ? (SD_SDL_SamplesPerPart-SD_SDL_SampleOffsetInSound) : (len/2);
-
-		// AdLib (including hack for alOut delays)
-		if (SD_ALOut_SamplesEnd-SD_ALOut_SamplesStart <= currNumOfSamples)
-		{
-			// Copy sound generated by alOut
-			if (SD_ALOut_SamplesEnd-SD_ALOut_SamplesStart > 0)
-				memcpy(currSamplePtr, &SD_ALOut_Samples[SD_ALOut_SamplesStart], 2*(SD_ALOut_SamplesEnd-SD_ALOut_SamplesStart));
-			// Generate what's left
-			if (currNumOfSamples-(SD_ALOut_SamplesEnd-SD_ALOut_SamplesStart) > 0)
-				YM3812UpdateOne(&oplChip, currSamplePtr+(SD_ALOut_SamplesEnd-SD_ALOut_SamplesStart), currNumOfSamples-(SD_ALOut_SamplesEnd-SD_ALOut_SamplesStart));
-			// Finally update these
-			SD_ALOut_SamplesStart = SD_ALOut_SamplesEnd = 0;
-		}
-		else
-		{
-			// Already generated enough by alOut, to be copied
-			memcpy(currSamplePtr, &SD_ALOut_Samples[SD_ALOut_SamplesStart], 2*currNumOfSamples);
-			SD_ALOut_SamplesStart += currNumOfSamples;
-		}
-		// PC Speaker
-		if (SD_PC_Speaker_On)
-			PCSpeakerUpdateOne(currSamplePtr, currNumOfSamples);
-		// We're done for now
-		currSamplePtr += currNumOfSamples;
-		SD_SDL_SampleOffsetInSound += currNumOfSamples;
-		len -= 2*currNumOfSamples;
-		// End of part?
-		if (SD_SDL_SampleOffsetInSound >= SD_SDL_SamplesPerPart)
-		{
-			SD_SDL_SampleOffsetInSound = 0;
-		}
+		SDL_UnlockMutex(sd_mutex);
+		return;
 	}
+	
+	uint32_t length = SDL_SwapLE32(*(uint32_t *)(SoundTable[SoundNumber])) + 6;
+	int lenToCopy = SDL_min(len, length - SD_SDL_SampleOffsetInSound);
+	SD_SDL_DecodeSound(stream, SoundTable[SoundNumber] + SD_SDL_SampleOffsetInSound, lenToCopy/2);
+	SD_SDL_SampleOffsetInSound += lenToCopy;
+	if (SD_SDL_SampleOffsetInSound >= length)
+	{
+		SoundNumber = 0;
+		SoundPriority = 0;
+	}
+	SDL_UnlockMutex(sd_mutex);
 }
 
 void SDL_SetTimer0(int16_t int_8_divisor)
@@ -368,407 +148,24 @@ void SDL_SetIntsPerSecond(int16_t tickrate)
 	SDL_SetTimer0(((int32_t)SD_SOUND_PART_RATE_BASE / (int32_t)tickrate) & 0xFFFF);
 }
 
-void SDL_PCPlaySound_Low(PCSound *sound)
-{
-	pcLastSample = 255;
-	pcLengthLeft = SDL_SwapLE32(sound->common.length);
-	pcSound = (uint8_t *)sound->data;
-}
-
-/* NEVER call this from the SDL callback!!! (Or you want a deadlock?) */
-void SDL_PCPlaySound(PCSound *sound)
-{
-	if (SD_SDL_AudioSubsystem_Up)
-		SDL_LockAudio();
-	SDL_PCPlaySound_Low(sound);
-	if (SD_SDL_AudioSubsystem_Up)
-		SDL_UnlockAudio();
-}
-
-void SDL_PCStopSound_Low(void)
-{
-	pcSound = 0;
-	// Turn the speaker off
-	SD_PC_Speaker_On = false;
-}
-
-/* NEVER call this from the SDL callback!!! (Or you want a deadlock?) */
-void SDL_PCStopSound(void)
-{
-	if (SD_SDL_AudioSubsystem_Up)
-		SDL_LockAudio();
-	SDL_PCStopSound_Low();
-	if (SD_SDL_AudioSubsystem_Up)
-		SDL_UnlockAudio();
-}
-
-void SDL_PCService(void)
-{
-	// TODO: FINISH!
-	uint8_t s;
-	uint16_t t;
-
-	if (pcSound)
-	{
-		s = *pcSound++;
-		if (s != pcLastSample)
-		{
-#if 0
-		asm	pushf
-		asm	cli
-#endif
-			pcLastSample = s;
-			if (s)					// We have a frequency!
-			{
-				t = pcSoundLookup[s];
-				// Turn the speaker & gate on
-				SD_PC_Speaker_On = true;
-				SD_SDL_CurrentBeepSample = 0;
-				SD_SDL_BeepHalfCycleCounter = 0;
-				SD_SDL_BeepHalfCycleCounterUpperBound = SD_SDL_AudioSpec.freq * t;
-#if 0
-			asm	mov	bx,[t]
-
-			asm	mov	al,0xb6			// Write to channel 2 (speaker) timer
-			asm	out	43h,al
-			asm	mov	al,bl
-			asm	out	42h,al			// Low byte
-			asm	mov	al,bh
-			asm	out	42h,al			// High byte
-
-			asm	in	al,0x61			// Turn the speaker & gate on
-			asm	or	al,3
-			asm	out	0x61,al
-#endif
-			}
-			else					// Time for some silence
-			{
-				// Turn the speaker & gate on
-				SD_PC_Speaker_On = false;
-#if 0
-			asm	in	al,0x61		  	// Turn the speaker & gate off
-			asm	and	al,0xfc			// ~3
-			asm	out	0x61,al
-#endif
-			}
-#if 0
-		asm	popf
-#endif
-		}
-
-		if (!(--pcLengthLeft))
-		{
-			SDL_PCStopSound_Low();
-			SDL_SoundFinished();
-		}
-	}
-}
-
-void SDL_ShutPC_Low(void)
-{
-	pcSound = 0;
-	// Turn the speaker & gate off
-	SD_PC_Speaker_On = false;
-}
-
-/* NEVER call this from the callback!!! */
-void SDL_ShutPC(void)
-{
-	if (SD_SDL_AudioSubsystem_Up)
-		SDL_LockAudio();
-	SDL_ShutPC_Low();
-	if (SD_SDL_AudioSubsystem_Up)
-		SDL_UnlockAudio();
-}
-
-void SDL_ALStopSound_Low(void)
-{
-	alSound = 0;
-	alOut_Low(alFreqH + 0,0);
-}
-
-/* NEVER call this from the callback!!! */
-void SDL_ALStopSound(void)
-{
-	if (SD_SDL_AudioSubsystem_Up)
-		SDL_LockAudio();
-	SDL_ALStopSound_Low();
-	if (SD_SDL_AudioSubsystem_Up)
-		SDL_UnlockAudio();
-}
-
-/* NEVER call this from the callback!!! */
-static void SDL_AlSetFXInst(Instrument *inst)
-{
-	uint8_t	c,m,cScale;
-
-	m = modifiers[0];
-	c = carriers[0];
-	alOut(m + alChar,inst->mChar);
-	alOut(m + alScale,inst->mScale);
-	alOut(m + alAttack,inst->mAttack);
-	alOut(m + alSus,inst->mSus);
-	alOut(m + alWave,inst->mWave);
-
-	alOut(c + alChar,inst->cChar);
-
-	cScale = inst->cScale;
-	if (quiet_sfx)
-	{
-		cScale = 0x3F - cScale;
-		/* TODO: All shifts should be arithmetic/signed
-		 * and apply on 16-bit values. Are they??
-		 */
-		cScale = (uint8_t)((((int16_t)0) | cScale) >> 1) + (uint8_t)((((int16_t)0) | cScale) >> 2);
-		cScale = 0x3F - cScale;
-	}
-	alOut(c + alScale,cScale);
-
-	alOut(c + alAttack,inst->cAttack);
-	alOut(c + alSus,inst->cSus);
-	alOut(c + alWave,inst->cWave);
-}
-
-static void SDL_ALPlaySound_Low(AdLibSound *sound)
-{
-	Instrument *inst;
-
-	// Do NOT call the non-low variant as we're already in such a variant!!!
-	SDL_ALStopSound_Low();
-
-	alLengthLeft = SDL_SwapLE32(sound->common.length);
-	alSound = (uint8_t *)sound->data;
-
-	alBlock = ((sound->block & 7) << 2) | 0x20;
-	inst = &sound->inst;
-
-	if (!(inst->mSus | inst->cSus))
-	{
-		Quit("SDL_ALPlaySound() - Bad instrument");
-	}
-
-	// SDL_AlSetFXInst(&alZeroInst);	// DEBUG
-	SDL_AlSetFXInst(inst);
-}
-
-/* NEVER call this from the SDL callback!!! (Or you want a deadlock?) */
-static void SDL_ALPlaySound(AdLibSound *sound)
-{
-	if (SD_SDL_AudioSubsystem_Up)
-		SDL_LockAudio();
-	SDL_ALPlaySound_Low(sound);
-	if (SD_SDL_AudioSubsystem_Up)
-		SDL_UnlockAudio();
-}
-
-void SDL_ALSoundService(void)
-{
-	uint8_t s;
-
-	if (alSound)
-	{
-		s = *alSound++;
-		if (!s)
-			alOut_Low(alFreqH + 0,0);
-		else
-		{
-			alOut_Low(alFreqL + 0,s);
-			alOut_Low(alFreqH + 0,alBlock);
-		}
-
-		if (!(--alLengthLeft))
-		{
-			alSound = 0;
-			alOut_Low(alFreqH + 0,0);
-			SDL_SoundFinished();
-		}
-	}
-}
-
-void SDL_ALService(void)
-{
-	uint8_t a,v;
-	uint16_t w;
-
-	if (!sqActive)
-		return;
-
-	while (sqHackLen && (sqHackTime <= alTimeCount))
-	{
-		w = *sqHackPtr++;
-		sqHackTime = alTimeCount + *sqHackPtr++;
-		// TODO/FIXME: Endianness??
-		a = *((uint8_t *)&w);
-		v = *((uint8_t *)&w + 1);
-		alOut_Low(a,v);
-		sqHackLen -= 4;
-	}
-	alTimeCount++;
-	if (!sqHackLen)
-	{
-		sqHackPtr = sqHack;
-		sqHackLen = sqHackSeqLen;
-		alTimeCount = sqHackTime = 0;
-	}
-}
-
-static void SDL_ShutAL_Low(void)
-{
-	alOut_Low(alEffects, 0);
-	alOut_Low(alFreqH + 0, 0);
-	SDL_AlSetFXInst(&alZeroInst);
-	alSound = 0;
-}
-
-/* NEVER call this from the callback!!! */
-static void SDL_ShutAL(void)
-{
-	if (SD_SDL_AudioSubsystem_Up)
-		SDL_LockAudio();
-	SDL_ShutAL_Low();
-	if (SD_SDL_AudioSubsystem_Up)
-		SDL_UnlockAudio();
-}
-
-/* NEVER call this from the callback!!! */
-static void SDL_CleanAL(void)
-{
-	int16_t i;
-	alOut(alEffects, 0);
-	for (i = 1; i < 0xf5; i++)
-		alOut(i, 0);
-}
-
-/* NEVER call this from the callback!!! */
-static void SDL_StartAL(void)
-{
-	alFXReg = 0;
-	alOut(alEffects, alFXReg);
-	SDL_AlSetFXInst(&alZeroInst);
-}
 
 /* NEVER call this from the callback!!! */
 static boolean SDL_DetectAdlib(boolean assumepresence)
 {
-	uint8_t status1,status2;
-	int16_t i;
-
-	alOut(4,0x60);	// Reset T1 & T2
-	alOut(4,0x80);	// Reset IRQ
-//	status1 = readstat();
-	alOut(2,0xff);	// Set timer 1
-	alOut(4,0x21);	// Start timer 1
-
-	/* Not relevant for us; We always assume the answer is "yes".
-	 * Besides, the original code is speed-sensitive and tends
-	 * to malfunction in too fast environments.
-	 */
-
-/*
-	asm	mov	dx,0x388
-	asm	mov	cx,100
-	usecloop:
-	asm	in	al,dx
-	asm	loop usecloop
-*/
-
-//	status2 = readstat();
-	alOut(4,0x60);
-	alOut(4,0x80);
-
-	// Assume the answer is always "Yes"...
-
-//	if (assumepresence || (((status1 & 0xe0) == 0x00) && ((status2 & 0xe0) == 0xc0)))
-	{
-		for (i = 1;i <= 0xf5;i++) // Zero all the registers
-			alOut(i,0);
-
-		alOut(1,0x20); // Set WSE=1
-		alOut(8,0);    // Set CSM=0 & SEL=0
-
-		return true;
-	}
-//	else
-//		return false;
-}
-
-void SDL_PCService(void);
-void SDL_ALSoundService(void);
-void SDL_ALService(void);
-
-void SDL_t0Service(void)
-{
-	static uint16_t count = 1;
-	if (MusicMode == smm_AdLib)
-	{
-		SDL_ALService();
-		++count;
-/*		if (!(count & 7))
-		{
-			LocalTime++;
-			TimeCount++;
-			if (SoundUserHook)
-				SoundUserHook();
-		}*/
-		if (!(count & 3))
-		{
-			switch (SoundMode)
-			{
-			case sdm_PC:
-				SDL_PCService();
-				break;
-			case sdm_AdLib:
-				SDL_ALSoundService();
-				break;
-			}
-		}
-	}
-	else
-	{
-		++count;
-/*		if (!(count & 1))
-		{
-			LocalTime++;
-			TimeCount++;
-			if (SoundUserHook)
-				SoundUserHook();
-		}*/
-		switch (SoundMode)
-		{
-		case sdm_PC:
-			SDL_PCService();
-			break;
-		case sdm_AdLib:
-			SDL_ALSoundService();
-			break;
-		}
-	}
+	return true;
 }
 
 void SDL_ShutDevice(void)
 {
-	switch (SoundMode)
-	{
-		case sdm_PC: SDL_ShutPC(); break;
-		case sdm_AdLib: SDL_ShutAL(); break;
-	}
 	SoundMode = sdm_Off;
 }
 
 void SDL_CleanDevice(void)
 {
-	if ((SoundMode == sdm_AdLib) || (MusicMode == smm_AdLib))
-	{
-		SDL_CleanAL();
-	}
 }
 
 void SDL_StartDevice(void)
 {
-	if (SoundMode == sdm_AdLib)
-	{
-		SDL_StartAL();
-	}
 	SoundNumber = (word)0; SoundPriority = 0;
 }
 
@@ -868,7 +265,7 @@ void SD_Startup(void)
 	}
 	else
 	{
-		SD_SDL_AudioSpec.freq = 49716; // OPL rate
+		SD_SDL_AudioSpec.freq = 44100; // PCM rate
 		SD_SDL_AudioSpec.format = AUDIO_S16;
 		SD_SDL_AudioSpec.channels = 1;
 		// Under wine, small buffer sizes cause a lot of crackling, so we double the
@@ -896,31 +293,17 @@ void SD_Startup(void)
 			SD_SDL_AudioSubsystem_Up = true;
 		}
 
-		if (YM3812Init(1, 3579545, SD_SDL_AudioSpec.freq))
-		{
-		}
 	}
-	/*word_4E19A = 0; */ /* TODO: Unused variable? */
-	alNoCheck = false;
 
-	// TODO: Check command line arguments - Set alNoCheck to 1 if desired
-
-	alTimeCount = 0;
 	SD_SetTimeCount(0);
 
 	SD_SetSoundMode(sdm_Off);
 	SD_SetMusicMode(smm_Off);
+	
+	sd_mutex = SDL_CreateMutex();
 
-	if (!alNoCheck)
-		AdLibPresent = SDL_DetectAdlib(true);
-	/* FIXME? Otherwise what is the value of AdLibPresent? */
+	AdLibPresent = SDL_DetectAdlib(true);
 
-	// For PC speaker
-	int16_t loopvar;
-	for (loopvar = 0; loopvar < 255; loopvar++)
-	{
-		pcSoundLookup[loopvar] = loopvar*60;
-	}
 
 	if (SD_SDL_AudioSubsystem_Up)
 	{
@@ -999,6 +382,7 @@ void SD_Shutdown(void)
 	SDL_ShutDevice();
 	SDL_CleanDevice();
 
+	SDL_DestroyMutex(sd_mutex);
 	// Some timer stuff not done here
 
 	SD_Started = false;
@@ -1012,7 +396,7 @@ void SD_PlaySound(word sound)
 		return;
 	if (!SoundTable[sound])
 		Quit("SD_PlaySound() - Uncached sound");
-	length = SDL_SwapLE32(*(uint32_t *)(&SoundTable[sound]));
+	length = SDL_SwapLE32(*(uint32_t *)(SoundTable[sound]));
 	if (!length)
 		Quit("SD_PlaySound() - Zero length sound");
 	priority = SDL_SwapLE16(*(uint16_t *)(SoundTable[sound] + 4));
@@ -1020,100 +404,58 @@ void SD_PlaySound(word sound)
 	{
 		return;
 	}
-	switch (SoundMode)
-	{
-		case sdm_PC: SDL_PCPlaySound((PCSound *)(SoundTable[sound])); break;
-		case sdm_AdLib: SDL_ALPlaySound((AdLibSound *)(SoundTable[sound])); break;
-	}
+	SDL_LockMutex(sd_mutex);
+	SD_SDL_SampleOffsetInSound = 6;
 	SoundNumber = sound;
 	SoundPriority = priority;
+	soundPrev = soundDiff = 0;
+	SDL_UnlockMutex(sd_mutex);
+	//printf("Playing sound %d, length %d (%d secs), prio %d\n", sound, length, length / (44100*2), priority);
 }
 
 uint16_t SD_SoundPlaying(void)
 {
-	switch (SoundMode)
-	{
-		case sdm_PC: return pcSound ? SoundNumber : 0;
-		case sdm_AdLib: return alSound ? SoundNumber : 0;
-	}
-	return 0;
+	return SoundNumber;
 }
 
 void SD_StopSound(void)
 {
-	switch (SoundMode)
-	{
-		case sdm_PC: SDL_PCStopSound(); break;
-		case sdm_AdLib: SDL_ALStopSound(); break;
-	}
+	if (!SD_Started)
+		return;
+	SDL_LockMutex(sd_mutex);
 	SDL_SoundFinished();
+	SDL_UnlockMutex(sd_mutex);
 }
 
 void SD_WaitSoundDone(void)
 {
-	while (SD_SoundPlaying())
+	while (SoundPriority)
 	{
 		// The original code simply waits in a busy loop.
 		// Bad idea for new code.
-		// TODO: What about checking for input/graphics/other status?
-		SDL_Delay(1);
+		// TODO: What about checking for input?
+		VW_GL_Present();
 	}
 }
 
 void SD_MusicOn(void)
 {
-	sqActive = 1;
 }
 
 /* NEVER call this from the callback!!! */
 void SD_MusicOff(void)
 {
-	uint16_t i;
-	if (MusicMode == smm_AdLib)
-	{
-		alFXReg = 0;
-		alOut(alEffects, 0);
-		for (i = 0; i < sqMaxTracks; i++)
-			alOut(alFreqH + i + 1, 0);
-	}
-	sqActive = 0;
 }
 
 void SD_StartMusic(MusicGroup *music)
 {
-	SD_MusicOff();
-	if (MusicMode == smm_AdLib)
-	{
-		sqHackPtr = sqHack = (uint16_t *)music->offsets;
-		sqHackSeqLen = sqHackLen = music->count;
-		sqHackTime = 0;
-		alTimeCount = 0;
-		SD_MusicOn();
-	}
 }
 
 void SD_FadeOutMusic(void)
 {
-	if (MusicMode == smm_AdLib)
-		SD_MusicOff();
 }
 
 boolean SD_MusicPlaying(void)
 {
 	return false; // All it really does...
-#if 0
-	boolean	result;
-
-	switch (MusicMode)
-	{
-	case smm_AdLib:
-		result = false;
-		// DEBUG - not written
-		break;
-	default:
-		result = false;
-	}
-
-	return(result);
-#endif
 }

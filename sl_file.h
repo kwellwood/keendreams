@@ -1,5 +1,6 @@
-/* Keen Dreams Source Code
+/* Keen Dreams (SDL2/Steam Port) Source Code
  * Copyright (C) 2014 Javier M. Chavez
+ * Copyright (C) 2015 David Gow <david@davidgow.net>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -66,7 +67,7 @@ typedef enum LibFileTypes
 //						   * This header will NEVER change! *
 //--------------------------------------------------------------------------
 
-typedef struct  __attribute__((__packed__)) SoftLibHdr
+PACKED(SoftLibHdr)
 {
 	uint16_t Version;									// Library Version Num
 	uint16_t FileCount;
@@ -83,7 +84,7 @@ typedef struct  __attribute__((__packed__)) SoftLibHdr
 
 #define SL_FILENAMESIZE		16
 
-typedef struct __attribute__((__packed__)) FileEntryHdr
+PACKED(FileEntryHdr)
 {
 	char FileName[SL_FILENAMESIZE];		  	// NOTE : May not be null terminated!
 	uint32_t Offset;
@@ -98,7 +99,7 @@ typedef struct __attribute__((__packed__)) FileEntryHdr
 //							   SOFTLIB Entry Chunk Header
 //--------------------------------------------------------------------------
 
-typedef struct __attribute__((__packed__)) ChunkHeader
+PACKED(ChunkHeader)
 {
 	uint32_t HeaderID;
 	uint32_t OrginalLength;

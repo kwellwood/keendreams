@@ -1,5 +1,6 @@
-/* Keen Dreams Source Code
+/* Keen Dreams (SDL2/Steam Port) Source Code
  * Copyright (C) 2014 Javier M. Chavez
+ * Copyright (C) 2015 David Gow <david@davidgow.net>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,7 +34,7 @@
 BufferedIO lzwBIO;
 
 
-#ifdef WIN32
+#ifdef _MSC_VER
 #include <io.h>
 #else
 #define O_BINARY 0
@@ -142,7 +143,7 @@ unsigned long BLoad(char *SourceFile, memptr *DstPtr)
 
 		if ((MM_TotalFree() < SrcLen) && (CompHeader.CompType))
 		{
-			printf("Using buffered IO\n");
+			//printf("Using buffered IO\n");
 			if (!InitBufferedIO(handle,&lzwBIO))
 				Quit("No memory for buffered I/O.");
 
@@ -156,7 +157,7 @@ unsigned long BLoad(char *SourceFile, memptr *DstPtr)
 
 				#if LZH_SUPPORT
 				case ct_LZH:
-					lzhDecompress(&lzwBIO,MK_FP(*DstPtr,0),CompHeader.OrginalLen,CompHeader.CompressLen,(SRC_BFILE|DEST_MEM));
+					lzhDecompress(&lzwBIO,MK_FP((byte *)*DstPtr,0),CompHeader.OrginalLen,CompHeader.CompressLen,(SRC_BFILE|DEST_MEM));
 				break;
 				#endif
 
@@ -170,7 +171,7 @@ unsigned long BLoad(char *SourceFile, memptr *DstPtr)
 		else
 		{
 			CA_LoadFile(SourceFile,&SrcPtr);
-			printf("Loading completely.\n");
+			//printf("Loading completely.\n");
 			switch (CompHeader.CompType)
 			{
 				#if LZW_SUPPORT
@@ -181,7 +182,7 @@ unsigned long BLoad(char *SourceFile, memptr *DstPtr)
 
 				#if LZH_SUPPORT
 				case ct_LZH:
-					lzhDecompress(MK_FP(SrcPtr,8),MK_FP(*DstPtr,0),CompHeader.OrginalLen,CompHeader.CompressLen,(SRC_MEM|DEST_MEM));
+					lzhDecompress(MK_FP((byte *)SrcPtr, 8), MK_FP((byte *)*DstPtr, 0), CompHeader.OrginalLen, CompHeader.CompressLen, (SRC_MEM | DEST_MEM));
 				break;
 				#endif
 
@@ -252,7 +253,7 @@ int LoadLIBShape(char *SLIB_Filename, char *Filename,struct Shape *SHP)
 		ChunkLen = *(uint32_t *)(ptr+4);
 		SwapLong(&ChunkLen);
 		ChunkLen = (ChunkLen+1) & 0xFFFFFFFE;
-		printf("Chunk: %c%c%c%c, size %d (fileLen = %d)\n", *ptr, *(ptr+1), *(ptr+2), *(ptr+3), ChunkLen, FileLen);
+		//printf("Chunk: %c%c%c%c, size %d (fileLen = %d)\n", *ptr, *(ptr+1), *(ptr+2), *(ptr+3), ChunkLen, FileLen);
 		//printf("ptr val = %d", ptr - (byte*)IFFfile);
 
 		if (CHUNK("BMHD"))
@@ -463,7 +464,7 @@ memptr LoadLIBFile(char *LibName,char *FileName,memptr *MemPtr)
 			#endif
 
 			case ct_NONE:
-				if (!CA_FarRead(handle,MK_FP(*MemPtr,0),ChunkLen))
+				if (!CA_FarRead(handle, MK_FP((byte *)*MemPtr, 0), ChunkLen))
 				{
 //					close(handle);
 					*MemPtr = NULL;

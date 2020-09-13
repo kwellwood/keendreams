@@ -1,5 +1,6 @@
-/* Keen Dreams Source Code
+/* Keen Dreams (SDL2/Steam Port) Source Code
  * Copyright (C) 2014 Javier M. Chavez
+ * Copyright (C) 2015 David Gow <david@davidgow.net>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -355,6 +356,7 @@ temp3 = flower count
 
 void ChangeToFlower (objtype *ob);
 void FlowerThink (objtype *ob);
+void VerifyFlowerPointer (objtype *ob);
 void ChangeFromFlower (objtype *ob);
 
 extern	statetype s_flower1;
@@ -404,11 +406,11 @@ statetype s_poofto4	  	 = {POOF4SPR,POOF4SPR,step,false,
 	false,10, 0,0, NULL, NULL, DrawReact2, NULL};
 
 statetype s_pooffrom1  	 = {POOF4SPR,POOF4SPR,step,false,
-	false,10, 0,0, NULL, NULL, DrawReact2, &s_pooffrom2};
+	false,10, 0,0, VerifyFlowerPointer, NULL, DrawReact2, &s_pooffrom2};
 statetype s_pooffrom2  	 = {POOF3SPR,POOF3SPR,step,false,
-	false,10, 0,0, NULL, NULL, DrawReact2, &s_pooffrom3};
+	false,10, 0,0, VerifyFlowerPointer, NULL, DrawReact2, &s_pooffrom3};
 statetype s_pooffrom3  	 = {POOF2SPR,POOF2SPR,step,false,
-	false,10, 0,0, NULL, NULL, DrawReact2, &s_pooffrom4};
+	false,10, 0,0, VerifyFlowerPointer, NULL, DrawReact2, &s_pooffrom4};
 statetype s_pooffrom4  	 = {POOF1SPR,POOF1SPR,step,false,
 	false,20, 0,0, ChangeFromFlower, NULL, DrawReact2, &s_pooffrom5};
 statetype s_pooffrom5  	 = {POOF2SPR,POOF2SPR,step,false,
@@ -477,6 +479,24 @@ void FlowerThink (objtype *ob)
 /*
 ======================
 =
+= VerifyFlowerPointer
+=
+======================
+*/
+
+void VerifyFlowerPointer (objtype *ob)
+{
+	objtype *flower = IntToObj(ob->temp1);
+	if (!(IntToState(flower->temp2) && flower->obclass == inertobj))
+	{
+		ob->state = 0;
+		return;
+	}
+}
+
+/*
+======================
+=
 = ChangeFromFlower
 =
 ======================
@@ -488,8 +508,14 @@ void ChangeFromFlower (objtype *ob)
 	statetype *state;
 	unsigned	oldbottom;
 
-	SD_PlaySound (UNFLOWERPOWERSND);
 	flower = IntToObj(ob->temp1);
+	if (!(IntToState(flower->temp2) && flower->obclass == inertobj))
+	{
+		ob->state = 0;
+		return;
+	}
+
+	SD_PlaySound (UNFLOWERPOWERSND);
 
 	oldbottom = flower->bottom;
 	ChangeState (flower,IntToState(flower->temp2));

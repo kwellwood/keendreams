@@ -1,5 +1,6 @@
-/* Keen Dreams Source Code
+/* Keen Dreams (SDL2/Steam Port) Source Code
  * Copyright (C) 2014 Javier M. Chavez
+ * Copyright (C) 2015 David Gow <david@davidgow.net>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,6 +27,10 @@
 
 
 #include <stdint.h>
+
+#ifndef __WIN_UTILS__
+#include "win_utils.h"
+#endif
 
 
 //==========================================================================
@@ -80,14 +85,13 @@ typedef enum ct_TYPES
 //  	FILE CHUNK HEADER FORMATS
 //
 
-struct __attribute__((__packed__)) COMPStruct
+PACKED_notypedef(COMPStruct)
 {
 	uint32_t DecompLen;
-
 };
 
 
-struct __attribute__((__packed__)) CMP1Header
+PACKED_notypedef(CMP1Header)
 {
 	uint16_t CompType;					// SEE: ct_TYPES above for list of pos.
 	uint32_t OrginalLen;			// Orginal FileLength of compressed Data.

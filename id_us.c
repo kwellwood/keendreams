@@ -1,5 +1,6 @@
-/* Keen Dreams Source Code
+/* Keen Dreams (SDL2/Steam Port) Source Code
  * Copyright (C) 2014 Javier M. Chavez
+ * Copyright (C) 2015 David Gow <david@davidgow.net>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -46,12 +47,18 @@
 // DEBUG - handle LPT3 for Sound Source
 
 #include "id_heads.h"
+#include "kd_stat.h"
 
-#ifndef WIN32
+#ifndef _MSC_VER
 #include <unistd.h>
 #else
 #include <io.h>
 #endif
+
+#ifndef __WIN_UTILS__
+#include "win_utils.h"
+#endif
+
 
 #define CTL_M_ADLIBUPPIC	CTL_S_ADLIBUPPIC
 #define CTL_M_ADLIBDNPIC	CTL_S_ADLIBDNPIC
@@ -67,27 +74,29 @@
 
 #define	MaxHighName	57
 #define	MaxScores	10
-typedef	struct
+
+PACKED(HighScore)
 		{
 			char		name[MaxHighName + 1];
 			uint32_t	score;
 			uint16_t	completed;
-		} __attribute__((__packed__)) HighScore;
+		} HighScore;
 
 #define	MaxGameName		32
 #define	MaxSaveGames	7
-typedef	struct
+PACKED(SaveGame)
 		{
 			char	signature[4];
 			boolean	present;
 			char	name[MaxGameName + 1];
-		} __attribute__((__packed__)) SaveGame;
+		} SaveGame;
 
 //	Hack import for TED launch support
 extern	boolean		tedlevel;
 extern	word		tedlevelnum;
 extern	void		TEDDeath(void);
 static	char		*ParmStrings[] = {"TEDLEVEL",""};
+char *lineInputDescription = "Text Input";
 
 
 //	Global variables
@@ -98,6 +107,8 @@ static	char		*ParmStrings[] = {"TEDLEVEL",""};
 		word		WindowX,WindowY,WindowW,WindowH;
 
 //	Internal variables
+static  boolean		resetmenu = false;
+static  boolean		isinmenu = true;
 static	boolean		US_Started;
 static	boolean		GameIsDirty,
 					HighScoresDirty,
@@ -108,7 +119,7 @@ static	memptr		LineOffsets;
 
 static	boolean		Button0,Button1,
 					CursorBad;
-static	int			CursorX,CursorY;
+int			CursorX,CursorY;
 
 static	void		(*USL_MeasureString)(char far *,word *,word *) = VW_MeasurePropString,
 					(*USL_DrawString)(char far *) = VWB_DrawPropString;
@@ -129,6 +140,7 @@ static	HighScore	Scores[MaxScores] =
 						{"",10000},
 						{"",10000}
 					};
+extern	unsigned	xpanmask;			// prevent panning to odd pixels
 
 //	Internal routines
 
@@ -156,8 +168,9 @@ USL_HardError(word errval,int ax,int bp,int si)
 static char *
 USL_GiveSaveName(word game)
 {
-static	char	filename[32];
-		char	*s,*t;
+	static char *filepath = 0;
+	char	filename[32];
+	char	*s,*t;
 
 	for (s = "SAVEGM",t = filename;*s;)
 		*t++ = *s++;
@@ -165,8 +178,14 @@ static	char	filename[32];
 	for (s = "."EXTENSION;*s;)
 		*t++ = *s++;
 	*t = '\0';
+	
+	char *prefpath = SDL_GetPrefPath(PREFPATH_ORG, PREFPATH_NAME);
+	size_t len = strlen(prefpath) + 11;
+	filepath = realloc(filepath, len + 1);
+	strcpy(filepath, prefpath);
+	strcat(filepath, filename);
 
-	return(filename);
+	return(filepath);
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -185,6 +204,25 @@ US_SetLoadSaveHooks(boolean (*load)(int),boolean (*save)(int),void (*reset)(void
 
 ///////////////////////////////////////////////////////////////////////////
 //
+//	USL_GiveConfigName() - Returns a pointer to a static buffer that contains
+//		the filename to use for the config file
+//
+///////////////////////////////////////////////////////////////////////////
+static char *
+USL_GiveConfigName()
+{
+	static char *filepath = 0;
+	char *prefpath = SDL_GetPrefPath(PREFPATH_ORG, PREFPATH_NAME);
+	size_t len = strlen(prefpath) + 11;
+	filepath = realloc(filepath, len + 1);
+	strcpy(filepath, prefpath);
+	strcat(filepath, "KDREAMS.CFG");
+
+	return(filepath);
+}
+
+///////////////////////////////////////////////////////////////////////////
+//
 //	USL_ReadConfig() - Reads the configuration file, if present, and sets
 //		things up accordingly. If it's not present, uses defaults. This file
 //		includes the high scores.
@@ -198,14 +236,18 @@ USL_ReadConfig(void)
 	SDMode		sd;
 	SMMode		sm;
 	ControlType	ctl;
+	boolean fullscreen = VW_GL_IsFullscreen();
 
-	if ((file = open("KDREAMS.CFG", O_RDONLY)) != -1)
+	if ((file = open(USL_GiveConfigName(), O_RDONLY | O_BINARY)) != -1)
 	{
 		read(file,Scores,sizeof(HighScore) * MaxScores);
 		read(file,&sd,sizeof(sd));
 		read(file,&sm,sizeof(sm));
 		read(file,&ctl,sizeof(ctl));
 		read(file,&(KbdDefs[0]),sizeof(KbdDefs[0]));
+		read(file,&fakecga, sizeof(fakecga));
+		read(file,&aspectcorrect, sizeof(aspectcorrect));
+		read(file,&fullscreen, sizeof(fullscreen));
 		close(file);
 
 		HighScoresDirty = false;
@@ -221,8 +263,13 @@ USL_ReadConfig(void)
 		HighScoresDirty = true;
 	}
 
+	if (g_minTics != 1)
+		xpanmask = (fakecga)?4:6;
+
 	SD_Default(gotit,sd,sm);
 	IN_Default(gotit,ctl);
+	VW_SetDefaultColors();
+	VW_GL_SetFullscreen(fullscreen);
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -235,8 +282,9 @@ static void
 USL_WriteConfig(void)
 {
 	FILE	*file;
+	boolean fullscreen = VW_GL_IsFullscreen();
 
-	file = fopen("KDREAMS.CFG", "wb");
+	file = fopen(USL_GiveConfigName(), "wb");
 	if (file)
 	{
 		fwrite(Scores,sizeof(HighScore), MaxScores, file);
@@ -244,6 +292,9 @@ USL_WriteConfig(void)
 		fwrite(&MusicMode,sizeof(MusicMode), 1, file);
 		fwrite(&(Controls[0]),sizeof(Controls[0]),1, file);
 		fwrite(&(KbdDefs[0]),sizeof(KbdDefs[0]),1, file);
+		fwrite(&fakecga, sizeof(fakecga),1,file);
+		fwrite(&aspectcorrect, sizeof(aspectcorrect),1,file);
+		fwrite(&fullscreen, sizeof(fullscreen),1,file);
 		fclose(file);
 	}
 }
@@ -270,7 +321,7 @@ USL_CheckSavedGames(void)
 	{
 		filename = USL_GiveSaveName(i);
 		ok = false;
-		if ((file = open(filename, O_RDONLY)) != -1)
+		if ((file = open(filename, O_RDONLY | O_BINARY)) != -1)
 		{
 			if
 			(
@@ -986,6 +1037,9 @@ US_LineInput(int x,int y,char *buf,char *def,boolean escok,
 	LastASCII = key_None;
 	LastScan = sc_None;
 
+
+	SDL_StartTextInput();
+
 	while (!done)
 	{
 		if (cursorvis)
@@ -996,6 +1050,45 @@ US_LineInput(int x,int y,char *buf,char *def,boolean escok,
 		LastScan = sc_None;
 		c = LastASCII;
 		LastASCII = key_None;
+
+		if (Controls[0] == ctrl_Joystick1
+			&& STAT_IsKbdAvailable()
+			&& IN_GetAllJoyButtons(0)
+			&& IN_IsJoyController(0))
+		{
+			STAT_BeginTextEntry(s, maxchars, lineInputDescription);
+			while (!STAT_IsTextEntryDone() || IN_KeyDown(sc_Escape))
+			{
+				IN_PumpEvents();
+				VW_GL_Present();
+			}
+			if (STAT_GetText(s, MaxString))
+				strcpy(buf,s);
+			done = true;
+			result = true;
+			// Disable the joystick buttons for 250 ms to stop the user from re-enabling the textbox.
+			IN_SetJoyDelay(250);
+			break;
+		}
+		else if (Controls[0] == ctrl_Joystick2
+			&& STAT_IsKbdAvailable()
+			&& IN_GetAllJoyButtons(1)
+			&& IN_IsJoyController(1))
+		{
+			STAT_BeginTextEntry(s, maxchars, lineInputDescription);
+			while (!STAT_IsTextEntryDone() || IN_KeyDown(sc_Escape))
+			{
+				IN_PumpEvents();
+				VW_GL_Present();
+			}
+			if (STAT_GetText(s, MaxString))
+				strcpy(buf,s);
+			done = true;
+			result = true;
+			// Disable the joystick buttons for 250 ms to stop the user from re-enabling the textbox.
+			IN_SetJoyDelay(250);
+			break;
+		}
 
 		switch (sc)
 		{
@@ -1057,7 +1150,7 @@ US_LineInput(int x,int y,char *buf,char *def,boolean escok,
 			cursormoved = true;
 			break;
 
-		case 0x4c:	// Keypad 5
+		case SDL_SCANCODE_KP_5:	// Keypad 5
 		case sc_UpArrow:
 		case sc_DownArrow:
 		case sc_PgUp:
@@ -1128,10 +1221,13 @@ US_LineInput(int x,int y,char *buf,char *def,boolean escok,
 		py = y;
 		USL_DrawString(olds);
 	}
+	SDL_StopTextInput();
+
 	VW_ShowCursor();
 	VW_UpdateScreen();
 
 	IN_ClearKeysDown();
+	lineInputDescription = "Text input";
 	return(result);
 }
 
@@ -1163,6 +1259,7 @@ static	boolean		USL_CtlButtonCustom(UserCall,word,word),
 					USL_CtlDSButtonCustom(UserCall,word,word),
 					USL_CtlSButtonCustom(UserCall,word,word),
 					USL_CtlCButtonCustom(UserCall,word,word),
+					USL_CtlVButtonCustom(UserCall,word,word),
 					USL_CtlCKbdButtonCustom(UserCall,word,word),
 					USL_CtlCJoyButtonCustom(UserCall,word,word);
 
@@ -1212,13 +1309,14 @@ static	UserItem	CtlPanels[] =
 {CtlPanelR(2),uii_RadioButton,CTL_DISKUPPIC,CTL_DISKDNPIC,"Load / Save / Quit",sc_None,ui_Normal,USL_CtlButtonCustom},
 {CtlPanelR(3),uii_RadioButton,CTL_CONTROLSUPPIC,CTL_CONTROLSDNPIC,"Choose Controls",sc_C,ui_Normal,USL_CtlButtonCustom},
 {CtlPanelR(4),uii_RadioButton,CTL_SOUNDUPPIC,CTL_SOUNDDNPIC,"Select Sound Device",sc_F2,ui_Normal,USL_CtlButtonCustom},
-{CtlPanelR(5),uii_RadioButton,CTL_MUSICUPPIC,CTL_MUSICDNPIC,"Turn Music On / Off",sc_F7,ui_Normal,USL_CtlButtonCustom},
+{CtlPanelR(5),uii_RadioButton,CTL_MUSICUPPIC,CTL_MUSICDNPIC,"Change Graphics Settings",sc_F7,ui_Normal,USL_CtlButtonCustom},
 {-1,-1,-1,-1,uii_Bad}
 					},
 					CtlPPanels[] =
 					{
-{CtlPanel2R(10,0),uii_RadioButton,CTL_P_NEWGAMEUPPIC,CTL_P_NEWGAMEDNPIC,"Choose Difficulty for the New Game",sc_F5,ui_Normal,USL_CtlPButtonCustom},
-{CtlPanel2R(15,0),uii_RadioButton,CTL_P_RESUMEUPPIC,CTL_P_RESUMEDNPIC,"Go Back to Current Game",sc_None,ui_Normal,USL_CtlPButtonCustom},
+{CtlPanel2R(8,0),uii_RadioButton,CTL_P_NEWGAMEUPPIC,CTL_P_NEWGAMEDNPIC,"Choose Difficulty for the New Game",sc_F5,ui_Normal,USL_CtlPButtonCustom},
+{CtlPanel2R(13,0),uii_RadioButton,CTL_P_RESUMEUPPIC,CTL_P_RESUMEDNPIC,"Go Back to Current Game",sc_None,ui_Normal,USL_CtlPButtonCustom},
+{CtlPanel2R(18,0),uii_Button,CTL_M_ADLIBUPPIC,CTL_M_ADLIBDNPIC,"Leaderboards",sc_None,ui_Normal,USL_CtlPRButtonCustom},
 {-1,-1,-1,-1,uii_Bad}
 					},
 					CtlPSPanels[] =
@@ -1243,7 +1341,7 @@ static	UserItem	CtlPanels[] =
 					CtlDPanels[] =
 					{
 {CtlPanel2R(9,0),uii_RadioButton,CTL_D_LSGAMEUPPIC,CTL_D_LSGAMEDNPIC,"Load or Save a Game",sc_F6,ui_Normal,USL_CtlDButtonCustom},
-{CtlPanel2R(15,0),uii_RadioButton,CTL_D_DOSUPPIC,CTL_D_DOSDNPIC,"Exit to DOS",sc_Q,ui_Normal,USL_CtlDButtonCustom},
+{CtlPanel2R(15,0),uii_RadioButton,CTL_D_DOSUPPIC,CTL_D_DOSDNPIC,"Exit Game",sc_Q,ui_Normal,USL_CtlDButtonCustom},
 {-1,-1,-1,-1,uii_Bad}
 					},
 					CtlDLSPanels[] =
@@ -1270,7 +1368,7 @@ static	UserItem	CtlPanels[] =
 					{
 #define	CtlPanel3ER(x,y)	{	CtlPanel3X+(x)*8,CtlPanel3Y+(y)*8,\
 								CtlPanel3X+40+(x)*8,CtlPanel3Y+24+(y)*8}
-{CtlPanel3ER(12,5),uii_Button,CTL_D_EXITUPPIC,CTL_D_EXITDNPIC,"Really Exit to DOS",sc_None,ui_Normal,USL_CtlDEButtonCustom},
+{CtlPanel3ER(12,5),uii_Button,CTL_D_EXITUPPIC,CTL_D_EXITDNPIC,"Really Exit?",sc_None,ui_Normal,USL_CtlDEButtonCustom},
 {-1,-1,-1,-1,uii_Bad}
 					},
 					CtlCPanels[] =
@@ -1298,16 +1396,16 @@ static	UserItem	CtlPanels[] =
 					},
 					CtlCJoyPanels[] =
 					{
-{CtlPanel3R(13,5),uii_Button,CTL_C_CALIBRATEUPPIC,CTL_C_CALIBRATEDNPIC,"Configure Joystick",sc_None,ui_Normal,USL_CtlCJoyButtonCustom},
+//{CtlPanel3R(13,5),uii_Button,CTL_C_CALIBRATEUPPIC,CTL_C_CALIBRATEDNPIC,"Configure Joystick",sc_None,ui_Normal,USL_CtlCJoyButtonCustom},
 {-1,-1,-1,-1,uii_Bad}
 					},
 					CtlSPanels[] =
 					{
-{CtlPanel2R(3,0),uii_RadioButton,CTL_S_NOSNDUPPIC,CTL_S_NOSNDDNPIC,"Turn Sound Off",sc_None,ui_Normal,USL_CtlSButtonCustom},
-{CtlPanel2R(8,0),uii_RadioButton,CTL_S_PCSNDUPPIC,CTL_S_PCSNDDNPIC,"Use PC Speaker",sc_None,ui_Normal,USL_CtlSButtonCustom},
-{CtlPanel2R(13,0),uii_RadioButton,CTL_S_ADLIBUPPIC,CTL_S_ADLIBDNPIC,"Use AdLib Sound Effects",sc_None,ui_Normal,USL_CtlSButtonCustom},
-{CtlPanel2R(18,0),uii_RadioButton,CTL_S_SNDBLUPPIC,CTL_S_SNDBLDNPIC,"Use SoundBlaster Sound Effects",sc_None,ui_Normal,USL_CtlSButtonCustom},
-{CtlPanel2R(23,0),uii_RadioButton,CTL_S_SNDSRCUPPIC,CTL_S_SNDSRCDNPIC,"Use Sound Source Sound Effects",sc_None,ui_Normal,USL_CtlSButtonCustom},
+{CtlPanel2R(8,0),uii_RadioButton,CTL_S_NOSNDUPPIC,CTL_S_NOSNDDNPIC,"Turn Sound Off",sc_None,ui_Normal,USL_CtlSButtonCustom},
+{CtlPanel2R(13,0),uii_RadioButton,CTL_S_PCSNDUPPIC,CTL_S_PCSNDDNPIC,"Use PC Speaker",sc_None,ui_Normal,USL_CtlSButtonCustom},
+{CtlPanel2R(18,0),uii_RadioButton,CTL_CHECKUPPIC,CTL_CHECKDNPIC,"Use AdLib Sound Effects",sc_None,ui_Normal,USL_CtlSButtonCustom},
+//{CtlPanel2R(18,0),uii_RadioButton,CTL_S_SNDBLUPPIC,CTL_S_SNDBLDNPIC,"Use SoundBlaster Sound Effects",sc_None,ui_Normal,USL_CtlSButtonCustom},
+//{CtlPanel2R(23,0),uii_RadioButton,CTL_S_SNDSRCUPPIC,CTL_S_SNDSRCDNPIC,"Use Sound Source Sound Effects",sc_None,ui_Normal,USL_CtlSButtonCustom},
 {-1,-1,-1,-1,uii_Bad}
 					},
 					CtlSSSPanels[] =
@@ -1322,6 +1420,13 @@ static	UserItem	CtlPanels[] =
 {CtlPanel2R(15,0),uii_RadioButton,CTL_M_ADLIBUPPIC,CTL_M_ADLIBDNPIC,"Use AdLib/SoundBlaster Music"},
 {-1,-1,-1,-1,uii_Bad}
 					},
+					CtlVPanels[] =
+					{
+{CtlPanel2R(8,0),uii_CheckBox,CTL_M_NOMUSUPPIC,CTL_M_NOMUSDNPIC,"EGA/CGA",sc_None,ui_Normal,USL_CtlVButtonCustom},
+{CtlPanel2R(13,0),uii_CheckBox,CTL_S_SNDBLUPPIC,CTL_S_SNDBLDNPIC,"Windowed/Fullscreen",sc_None,ui_Normal,USL_CtlVButtonCustom},
+{CtlPanel2R(18,0),uii_CheckBox,CTL_S_SNDSRCUPPIC,CTL_S_SNDSRCDNPIC,"Aspect Ratio",sc_None,ui_Normal,USL_CtlVButtonCustom},
+{-1,-1,-1,-1,uii_Bad}
+					},
 					*CtlPanels2[] =
 					{
 						CtlPPanels,	// Start
@@ -1329,7 +1434,7 @@ static	UserItem	CtlPanels[] =
 						CtlDPanels,	// Disk
 						CtlCPanels,	// Controls
 						CtlSPanels,	// Sound
-						CtlMPanels	// Music
+						CtlVPanels	// Music
 					},
 					*TheItems[4] = {CtlPanels};
 static	int			CtlPanelButton;
@@ -1967,7 +2072,7 @@ USL_CtlButtonCustom(UserCall call,word i,word n)
 	while (ip && (ip->type != uii_Bad))
 	{
 		USL_DrawItem(i + 1,j);
-		if (ip->sel & ui_Selected)
+		if ((ip->sel & ui_Selected) && ip->type != uii_CheckBox)
 			USL_DoHit(i + 1,j);
 		j++;
 		ip++;
@@ -2094,17 +2199,24 @@ USL_CtlCJoyButtonCustom(UserCall call,word i,word n)
 	{
 		USL_ShowHelp("Move Joystick to the Upper-Left");
 		VW_UpdateScreen();
-		while ((LastScan != sc_Escape) && !IN_GetJoyButtonsDB(joy))
+		while ((LastScan != sc_Escape) && !IN_GetAllJoyButtons(joy))
+		{
 			IN_PumpEvents();
+			VW_GL_Present();
+		}
 
 		if (LastScan != sc_Escape)
 		{
 			IN_GetJoyAbs(joy,&minx,&miny);
-			while (IN_GetJoyButtonsDB(joy));
+			while (IN_GetAllJoyButtons(joy))
+			{
+				IN_PumpEvents();
+				VW_GL_Present();
+			}
 
 			USL_ShowHelp("Move Joystick to the Lower-Right");
 			VW_UpdateScreen();
-			while ((LastScan != sc_Escape) && !IN_GetJoyButtonsDB(joy))
+			while ((LastScan != sc_Escape) && !IN_GetAllJoyButtons(joy))
 				IN_PumpEvents();
 
 			if (LastScan != sc_Escape)
@@ -2117,7 +2229,11 @@ USL_CtlCJoyButtonCustom(UserCall call,word i,word n)
 					IN_SetupJoy(joy,minx,maxx,miny,maxy);
 				}
 				else
-					while (IN_GetJoyButtonsDB(joy));
+					while (IN_GetAllJoyButtons(joy))
+					{
+						IN_PumpEvents();
+						VW_GL_Present();
+					}
 			}
 			else
 				Done = true;
@@ -2128,8 +2244,11 @@ USL_CtlCJoyButtonCustom(UserCall call,word i,word n)
 
 
 	if (LastScan != sc_Escape)
-		while (IN_GetJoyButtonsDB(joy))
+		while (IN_GetAllJoyButtons(joy))
+		{
 			IN_PumpEvents();
+			VW_GL_Present();
+		}
 
 	if (LastScan)
 		IN_ClearKeysDown();
@@ -2169,16 +2288,16 @@ static word
 USL_FormatHelp(char far *text,long len)
 {
 	word	line,
-			w,h,
-			far *off;
+			w,h;
+	uintptr_t *off;
 	char	c,
 			far *s,far *l,far *le;
 
 	WindowX += 4;
 	WindowW -= 4;
 
-	MM_GetPtr(&LineOffsets,MaxHelpLines * sizeof(word));
-	off = (word far *)LineOffsets;
+	MM_GetPtr(&LineOffsets,MaxHelpLines * sizeof(uintptr_t));
+	off = (uintptr_t *)LineOffsets;
 	for (line = 0,le = l = s = text;(s - text < len) && (*s != '~');s++)
 	{
 		if ((c = *s) == '\n')
@@ -2234,7 +2353,7 @@ USL_FormatHelp(char far *text,long len)
 static void
 USL_DrawHelp(char far *text,word start,word end,word line,word h,uintptr_t *lp)
 {
-	px = WindowX + 4;
+	px = WindowX + 2;
 	py = WindowY + (line * h);
 	for (lp += start;start < end;start++,px = WindowX + 4,py += h)
 		USL_DrawString(text + *lp++);
@@ -2280,6 +2399,7 @@ USL_DoHelp(memptr text,long len)
 	lp = LineOffsets;
 
 	IN_ClearKeysDown();
+	IN_ReadWheel();
 	moved = true;
 	lasttime = 0;
 	scroll = 0;
@@ -2382,7 +2502,26 @@ USL_DoHelp(memptr text,long len)
 		waitkey = sc_None;
 
 		IN_ReadCursor(&info);
-		if (info.y < 0)
+		int wheel = IN_ReadWheel();
+		if (wheel > 0)
+		{
+			if (cur > 0)
+			{
+				scroll = -1;
+				cur--;
+				moved = true;
+			}
+		}
+		else if (wheel < 0)
+		{
+			if (cur + page < lines)
+			{
+				scroll = +1;
+				cur++;
+				moved = true;
+			}
+		}
+		else if (info.y < 0)
 		{
 			if (cur > 0)
 			{
@@ -2536,7 +2675,7 @@ extern	char	far gametext,far context,far story;
 			Quit("Bad help button number");
 		}
 
-		if ((file = open(name,O_RDONLY )) == -1)
+		if ((file = open(name,O_RDONLY | O_BINARY)) == -1)
 			USL_HandleError(errno);
 		else
 		{
@@ -2674,7 +2813,7 @@ USL_CtlDLButtonCustom(UserCall call,word i,word n)
 		VW_UpdateScreen();
 
 		err = 0;
-		if ((file = open(filename, O_RDONLY)) != -1)
+		if ((file = open(filename, O_RDONLY | O_BINARY)) != -1)
 		{
 			if (read(file,game,sizeof(*game)) == sizeof(*game))
 			{
@@ -2737,6 +2876,7 @@ USL_CtlDSButtonCustom(UserCall call,word i,word n)
 	fontcolor = F_BLACK;
 
 	r = USL_DLSRect(ip - 1);
+	lineInputDescription = "Savegame Name";
 	ok = US_LineInput(px,py,game->name,game->present? game->name : nil,true,
 						MaxGameName,r.lr.x - r.ul.x - 8);
 	if (!strlen(game->name))
@@ -2752,7 +2892,7 @@ USL_CtlDSButtonCustom(UserCall call,word i,word n)
 		//LeaveDriveOn++;
 		filename = USL_GiveSaveName(n / 2);
 		err = 0;
-		file = open(filename,O_CREAT | O_WRONLY,
+		file = open(filename,O_CREAT | O_WRONLY | O_BINARY,
 					S_IREAD | S_IWRITE | S_IFREG);
 		if (file != -1)
 		{
@@ -2866,6 +3006,70 @@ USL_CtlPButtonCustom(UserCall call,word i,word n)
 
 ///////////////////////////////////////////////////////////////////////////
 //
+//	USL_CtlVButtonCustom() - The custom routine for the video settings
+//
+///////////////////////////////////////////////////////////////////////////
+static boolean
+USL_CtlVButtonCustom(UserCall call,word i,word n)
+{
+	word		j;
+	UserItem	*ip;
+
+	if (call != uic_Hit)
+		return(false);
+
+	ip = &TheItems[i][n];
+	ip->sel ^= ui_Selected;
+	// TOGGLE EGA/CGA
+	if (n == 0)
+	{
+		fakecga = !fakecga;
+		// If we're disabling CGA mode, make sure we don't get
+		// the achievement.
+		if (!fakecga)
+			STAT_InvalidateCGA();
+		CA_ReloadGrChunks();
+		if (g_minTics != 1)
+			xpanmask = (fakecga)?4:6;
+		fontcolor = F_BLACK;
+		
+		// Redraw the entire thing
+		VW_InitDoubleBuffer();
+
+		VWB_Bar(0,0,MaxX,MaxY,FIRSTCOLOR);
+		US_DrawWindow(8,22,30,2);
+		US_SaveWindow(&HelpWindow);
+		US_DrawWindow(8,7,30,14);
+		US_SaveWindow(&BottomWindow);
+		US_DrawWindow(8,1,30,20);
+
+		for (ip = CtlPanels;ip->type != uii_Bad;ip++)
+			VWB_DrawPic(ip->r.ul.x,ip->r.ul.y,ip->picup);
+		
+		USL_DoHit(0,0);
+		USL_DoHit(0,5);
+		VW_SetDefaultColors();
+		VW_SetCursor(CURSORARROWSPR);
+		USL_ShowHelp(TheItems[i][n].help);
+
+	}
+	else if (n==1)
+	{
+		//TOGGLE FULLSCREEN
+		VW_GL_SetFullscreen(ip->sel == ui_Normal);
+	}
+	else if (n==2)
+	{
+		aspectcorrect = (ip->sel == ui_Normal);
+	}
+	
+	USL_DrawItem(i,n);
+	return(true);
+}
+
+
+///////////////////////////////////////////////////////////////////////////
+//
 //	USL_GiveAbortWarning() - Draws a string that warns the user that an
 //		action they're about to take will abort the game in progress
 //
@@ -2943,11 +3147,40 @@ USL_CtlPSButtonCustom(UserCall call,word i,word n)
 static boolean
 USL_CtlPRButtonCustom(UserCall call,word i,word n)
 {
+
+	UserItem	*ip;
 	if (call != uic_Hit)
 		return(false);
 
-	i++,n++;	// Shut the compiler up
-	ResumeGame = true;
+	if (n >= 1)
+	{
+		USL_LeaderboardsScreen();
+
+		// Redraw the entire thing
+		VW_InitDoubleBuffer();
+
+		VWB_Bar(0,0,MaxX,MaxY,FIRSTCOLOR);
+		US_DrawWindow(8,22,30,2);
+		US_SaveWindow(&HelpWindow);
+		US_DrawWindow(8,7,30,14);
+		US_SaveWindow(&BottomWindow);
+		US_DrawWindow(8,1,30,20);
+
+		for (ip = CtlPanels;ip->type != uii_Bad;ip++)
+			VWB_DrawPic(ip->r.ul.x,ip->r.ul.y,ip->picup);
+		
+		USL_DoHit(0,5);
+		USL_DoHit(0,0);
+		VW_ShowCursor();
+		USL_ShowHelp(TheItems[i][n].help);
+		IN_ClearKeysDown();
+	}
+	else
+	{
+		ResumeGame = true;
+	}
+
+	i++;	// Shut the compiler up
 	return(false);
 }
 
@@ -2959,7 +3192,7 @@ USL_CtlPRButtonCustom(UserCall call,word i,word n)
 static boolean
 USL_CtlDEButtonCustom(UserCall call,word i,word n)
 {
-	boolean		result;
+	boolean		result = true;
 	UserItem	*ip;
 
 	i++,n++;	// Shut the compiler up
@@ -3006,7 +3239,22 @@ USL_CtlCButtonCustom(UserCall call,word i,word n)
 		VWB_DrawPic(p.x,p.y,CTL_DIRSPIC);
 	}
 	else
+	{
 		TheItems[i + 1] = ip = CtlCJoyPanels;
+
+		PrintY = 60;
+
+		US_CPrint(IN_GetJoyName(n-1));
+		// Get rid of the calibration button for real controllers.
+		if (IN_IsJoyController(n-1))
+		{
+			US_CPrint("A/Y: Jump, B/X: Fire\nControl Stick/D-Pad: Move\nStart: Return to menu");
+		}
+		else
+		{
+			US_CPrint("Button 1: Jump, Button 2: Fire\nConfigure your controller in\nSteam for best results.");
+		}
+	}
 
 	j = 0;
 	while (ip && (ip->type != uii_Bad))
@@ -3123,6 +3371,13 @@ USL_CheckScan(word *ci,word *cn)
 	return(false);
 }
 
+
+void US_FlushOnHotplug()
+{
+	if (isinmenu)
+		resetmenu = true;
+}
+
 ///////////////////////////////////////////////////////////////////////////
 //
 //	USL_SetUpCtlPanel() - Sets the states of the UserItems to reflect the
@@ -3196,6 +3451,15 @@ USL_SetUpCtlPanel(void)
 	USL_TurnOff(CtlMPanels);
 	CtlMPanels[smm_AdLib].sel = AdLibPresent? ui_Normal : ui_Disabled;
 	CtlMPanels[MusicMode].sel |= ui_Selected;
+	
+	// Set up Video
+	USL_TurnOff(CtlVPanels);
+	CtlVPanels[0].sel = (fakecga)? ui_Selected : ui_Normal;
+	CtlVPanels[1].sel = (VW_GL_IsFullscreen())? ui_Normal : ui_Selected;
+	CtlVPanels[2].sel = (aspectcorrect) ? ui_Normal : ui_Selected;
+
+	// Clear the keyboard.
+	IN_ClearKeysDown();
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -3267,9 +3531,23 @@ US_ControlPanel(void)
 	Rect		userect;
 	UserItem	*ip;
 
+	do {
+	isinmenu = true;
 	c = LastScan;
 	if (c == sc_Escape)	// Map escape from game to Exit to DOS
 		c = sc_Q;
+	
+	if (resetmenu)
+	{
+		if (Controls[0] >= ctrl_Joystick && !JoysPresent[Controls[0] - ctrl_Joystick])
+			Controls[0] = ctrl_Keyboard;
+
+		if (Controls[0] == ctrl_Keyboard)
+			c = sc_F3;
+		else
+			c = sc_F4;
+	}
+	resetmenu = false;
 
 	CA_UpLevel();
 	for (i = CONTROLS_LUMP_START;i <= CONTROLS_LUMP_END;i++)
@@ -3316,6 +3594,8 @@ US_ControlPanel(void)
 	)
 	{
 		IN_PumpEvents();
+		if (resetmenu)
+			break;
 		VW_UpdateScreen();
 
 		buttondown = US_UpdateCursor();
@@ -3472,7 +3752,7 @@ US_ControlPanel(void)
 		{
 			US_CenterWindow(20,3);
 			fontcolor = F_SECONDCOLOR;
-			US_PrintCentered("Now Exiting to DOS...");
+			US_PrintCentered("Now Exiting...");
 			fontcolor = F_BLACK;
 			VW_UpdateScreen();
 			Quit(nil);
@@ -3480,9 +3760,228 @@ US_ControlPanel(void)
 	}
 
 	CA_DownLevel();
+	} while (resetmenu);
+	isinmenu = false;
 }
 
 //	High score routines
+
+
+///////////////////////////////////////////////////////////////////////////
+//
+//	US_DisplayLeaderboard() - Assumes that double buffering has been started.
+//
+///////////////////////////////////////////////////////////////////////////
+void
+US_DisplayLeaderboard(const char *which, const char *displayname, int milliseconds)
+{
+	char		buffer[16],*str;
+	word		i,
+				w,h,
+				x,y;
+	HighScore	*s;
+
+	STAT_GetGlobalLeaderboardEntriesAroundMe(which);
+
+	US_CenterWindow(30,kd_leaderboardSize + (kd_leaderboardSize / 2) + 4);
+
+	x = WindowX + (WindowW) - 7 * 8;
+	US_CPrint(displayname);
+	US_Print(" Rank");
+	PrintX = WindowX + 40;
+	US_Print("Name");
+	PrintX = x;
+	US_Print("Score\n\n");
+	PrintY -= 4;
+
+	for (i = WindowX;i < WindowX + WindowW;i += 8)
+		VWB_DrawTile8M(i,WindowY + 20,10);
+	VWB_DrawTile8M(WindowX - 8,WindowY + 20,9);
+	VWB_DrawTile8M(WindowX + WindowW,WindowY + 20,11);
+
+	for (i = 0;i < kd_leaderboardSize;i++)
+	{
+		fontcolor = (kd_currentLeaderboard[i].isplayer)? F_SECONDCOLOR : F_BLACK;
+
+		US_Print(" ");
+		US_PrintUnsigned(kd_currentLeaderboard[i].rank);
+		PrintX = WindowX + 40;
+		if (strlen(kd_currentLeaderboard[i].name))
+			US_Print(kd_currentLeaderboard[i].name);
+		else
+			US_Print("-");
+
+		PrintX = x + 7 * 8;
+		if (milliseconds)
+		{
+			sprintf(buffer,"%02d:%05.2f", kd_currentLeaderboard[i].score/60000, (kd_currentLeaderboard[i].score % 60000)/1000.0);
+		}
+		else
+		{
+			US_LToA(kd_currentLeaderboard[i].score,buffer);
+		}
+		//for (str = buffer;*str;str++)
+		//	*str = *str + (129 - '0');	// Used fixed-width numbers (129...)
+		USL_MeasureString(buffer,&w,&h);
+		PrintX -= w;
+		US_Print(buffer);
+
+
+		US_Print("\n");
+	}
+
+	fontcolor = F_BLACK;
+
+	VW_UpdateScreen();
+}
+
+typedef struct US_LeaderboardType
+{
+	const char *name;
+	const char *description;
+	int milliseconds;
+} US_LeaderboardType;
+
+US_LeaderboardType leaderboards[] =
+{
+	{ "Map1Score", "High Scores: Horseradish Hill", 0},
+	{ "Map1Time", "Time Trial: Horseradish Hill", 1},
+	{ "Map2Score", "High Scores: The Melon Mines", 0 },
+	{ "Map2Time", "Time Trial: The Melon Mines", 1 },
+	{ "Map3Score", "High Scores: Bridge Bottoms", 0 },
+	{ "Map3Time", "Time Trial: Bridge Bottoms", 1 },
+	{ "Map4Score", "High Scores: Rhubarb Rapids", 0 },
+	{ "Map4Time", "Time Trial: Rhubarb Rapids", 1 },
+	{ "Map5Score", "High Scores: Parsnip Pass", 0 },
+	{ "Map5Time", "Time Trial: Parsnip Pass", 1 },
+	{ "Map7Score", "High Scores: Spud City", 0 },
+	{ "Map7Time", "Time Trial: Spud City", 1 },
+	{ "Map9Score", "High Scores: Apple Acres", 0 },
+	{ "Map9Time", "Time Trial: Apple Acres", 1 },
+	{ "Map10Score", "High Scores: Grape Grove", 0 },
+	{ "Map10Time", "Time Trial: Grape Grove", 1 },
+	{ "Map12Score", "High Scores: Brussels Sprout Bay", 0 },
+	{ "Map12Time", "Time Trial: Brussels Sprout Bay", 1 },
+	{ "Map14Score", "High Scores: Squash Swamp", 0 },
+	{ "Map14Time", "Time Trial: Squash Swamp", 1 },
+	{ "Map16Score", "High Scores: Castle Tuberia", 0 },
+	{ "Map16Time", "Time Trial: Castle Tuberia", 1 },
+	{ "GameScore", "High Scores: Completed Game", 0 },
+	{ "GameScore", "Time Trial: Completed Game", 1 },
+	{ NULL, NULL }
+};
+
+const int numleaderboards = sizeof(leaderboards)/sizeof(leaderboards[0])-1;
+
+int nextLeaderboard = 0;
+
+void US_SetLeaderboard(const char *name)
+{
+	for (int i = 0; i < numleaderboards; ++i)
+	{
+		if (!strcmp(name, leaderboards[i].name))
+		{
+			nextLeaderboard = i;
+			return;
+		}
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////
+//
+//	US_DisplayLeaderboards() - Assumes that double buffering has been started.
+//
+///////////////////////////////////////////////////////////////////////////
+void
+US_DisplayLeaderboards()
+{
+	// If we don't have Steam available, use the old high-scores code.
+	if (!STAT_IsAvailable())
+	{
+		US_DisplayHighScores(-1);
+		return;
+	}
+
+	US_DisplayLeaderboard(leaderboards[nextLeaderboard].name, leaderboards[nextLeaderboard].description, leaderboards[nextLeaderboard].milliseconds);
+	nextLeaderboard = (nextLeaderboard + 1) % numleaderboards;
+}
+
+///////////////////////////////////////////////////////////////////////////
+//
+//	US_DisplayLeaderboards() - Assumes that double buffering has been started.
+//
+///////////////////////////////////////////////////////////////////////////
+void
+USL_LeaderboardsScreen()
+{
+	VW_HideCursor();
+	while (true)
+	{
+		VWB_Bar(0,0,320,200,FIRSTCOLOR);
+		// If we don't have Steam available, use the old high-scores code.
+		if (!STAT_IsAvailable())
+		{
+			PrintX = 0;
+			PrintY = 190;
+			if (Controls[0] >= ctrl_Joystick && IN_IsJoyController(Controls[0] - ctrl_Joystick))
+				US_Print("Start or ESC Exits");
+			else
+				US_Print("ESC Exits");
+			US_DisplayHighScores(-1);
+		}
+		else
+		{
+			US_CenterWindow(30,3);
+			US_PrintCentered("Waiting for Steam...");
+			VW_UpdateScreen();
+			PrintX = 0;
+			PrintY = 190;
+			if (Controls[0] >= ctrl_Joystick)
+				US_Print("Gamepad selects / Start or ESC Exits");
+			else
+				US_Print("Arrows select / ESC Exits");
+
+			US_DisplayLeaderboard(leaderboards[nextLeaderboard].name, leaderboards[nextLeaderboard].description, leaderboards[nextLeaderboard].milliseconds);
+		}
+		IN_PumpEvents();
+		while (true)
+		{
+			ControlInfo ci;
+			IN_ReadControl(0, &ci);
+			if (ci.xaxis == motion_Left)
+			{
+				nextLeaderboard = (nextLeaderboard + numleaderboards - 1) % numleaderboards;
+				IN_ClearKey(sc_LeftArrow);
+				break;
+			}
+			else if (ci.xaxis == motion_Right)
+			{
+				nextLeaderboard = (nextLeaderboard + 1) % numleaderboards;
+				IN_ClearKey(sc_RightArrow);
+				break;
+			}
+			else if (ci.yaxis == motion_Up)
+			{
+				nextLeaderboard = nextLeaderboard ^ 1;
+				IN_ClearKey(sc_UpArrow);
+				break;
+			}
+			else if (ci.yaxis == motion_Down)
+			{
+				nextLeaderboard = nextLeaderboard ^ 1;
+				IN_ClearKey(sc_DownArrow);
+				break;
+			}
+			else if (IN_KeyDown(sc_Escape))
+			{
+				IN_ClearKey(sc_Escape);
+				return;
+			}
+			IN_PumpEvents();
+			VW_UpdateScreen();
+		}
+	}
+}
 
 ///////////////////////////////////////////////////////////////////////////
 //
@@ -3533,8 +4032,8 @@ US_DisplayHighScores(int which)
 
 		PrintX = x + (7 * 8);
 		US_LToA(s->score,buffer);
-		//for (str = buffer;*str;str++)
-		//	*str = *str + (129 - '0');	// Used fixed-width numbers (129...)
+		for (str = buffer;*str;str++)
+			*str = *str + (129 - '0');	// Used fixed-width numbers (129...)
 		USL_MeasureString(buffer,&w,&h);
 		PrintX -= w;
 		US_Print(buffer);
@@ -3555,6 +4054,7 @@ US_DisplayHighScores(int which)
 		PrintX = WindowX;
 		US_Print(" ");
 		strcpy(Scores[which].name,"");
+		lineInputDescription = "High Score Name";
 		US_LineInput(PrintX,PrintY,Scores[which].name,nil,true,MaxHighName,
 						(WindowW / 2) - 8);
 	}
@@ -3573,7 +4073,7 @@ US_DisplayHighScores(int which)
 void
 US_CheckHighScore(long score,word other)
 {
-	word		i,j,
+	int		i,j,
 				n;
 	HighScore	myscore;
 

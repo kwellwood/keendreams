@@ -1,5 +1,5 @@
 /* Keen Dreams (SDL2/Steam Port) Source Code
- * Copyright (C) 2014 David Gow <david@davidgow.net>
+ * Copyright (C) 2015 Emma Krantz
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,54 +16,12 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-// Stubs for id_vw_a.asm
-
-#include "id_heads.h"
-
-
-void VW_WaitVBL(int vblanks)
-{
-	while (vblanks--)
-	{
-		IN_PumpEvents();
-		VW_GL_Present();
-	}
-}
-
-cardtype VW_VideoID()
-{
-	return VGAcard;
-}
-
-boolean FindPS2()
-{
-	return false;
-}
-
-boolean FindEGA()
-{
-	return true;
-}
-
-boolean FindCGA()
-{
-	return true;
-}
-
-boolean FindMono()
-{
-	return true;
-}
-
-boolean Find6845()
-{
-	return true;
-}
-
-void FindActive()
-{
-}
-
-void FoundDevice()
-{
-}
+#ifdef _MSC_VER
+	#define PACKED(structname) __pragma(pack()) \
+		typedef struct structname
+	#define PACKED_notypedef(structname) __pragma(pack()) \
+		struct structname
+#else
+	#define PACKED(structname) typedef struct  __attribute__((__packed__)) structname
+	#define PACKED_notypedef(structname) struct __attribute__((__packed__)) structname
+#endif

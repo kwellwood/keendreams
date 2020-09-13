@@ -1,5 +1,6 @@
-/* Keen Dreams Source Code
+/* Keen Dreams (SDL2/Steam Port) Source Code
  * Copyright (C) 2014 Javier M. Chavez
+ * Copyright (C) 2015 David Gow <david@davidgow.net>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,7 +34,7 @@ loaded into the data segment
 #include "id_heads.h"
 #pragma hdrstop
 
-#ifndef WIN32
+#ifndef _MSC_VER
 #include <unistd.h>
 #else
 #include <io.h>
@@ -53,7 +54,7 @@ typedef struct
 } huffnode;
 
 
-typedef struct __attribute__((__packed__))
+PACKED(mapfiletype)
 {
 	uint16_t 	RLEWtag;
 	uint32_t	headeroffsets[100];
@@ -187,9 +188,6 @@ void CAL_GetGrChunkLength (int chunk)
 
 boolean CA_FarRead (int handle, byte  *dest, long length)
 {
-	if (length>0xffffl)
-		Quit ("CA_FarRead doesn't support 64K reads yet!");
-
 	return	(read(handle, dest, length) == length);
 }
 
@@ -206,8 +204,6 @@ boolean CA_FarRead (int handle, byte  *dest, long length)
 
 boolean CA_FarWrite (int handle, byte  *source, long length)
 {
-	if (length>0xffffl)
-		Quit ("CA_FarWrite doesn't support 64K reads yet!");
 	return (write(handle, source, length) == length);
 }
 
@@ -448,7 +444,7 @@ void CAL_SetupGrFile (void)
 
 	if ((handle = open(GREXT"DICT."EXTENSION,
 //	if ((handle = open("KDREAMS.EGA",
-		 O_RDONLY)) == -1)
+		 O_RDONLY | O_BINARY)) == -1)
 		Quit ("Can't open KDREAMS.EGA!");
 
 	read(handle, &grhuffman, sizeof(grhuffman));
@@ -460,7 +456,7 @@ void CAL_SetupGrFile (void)
 	MM_GetPtr ((memptr)&grstarts,(NUMCHUNKS+1)*4);
 
 	if ((handle = open(GREXT"HEAD."EXTENSION,
-		 O_RDONLY)) == -1)
+		 O_RDONLY | O_BINARY)) == -1)
 		Quit ("Can't open "GREXT"HEAD."EXTENSION"!");
 
 	CA_FarRead(handle, (memptr)grstarts, (NUMCHUNKS+1)*4);
@@ -474,7 +470,7 @@ void CAL_SetupGrFile (void)
 // Open the graphics file, leaving it open until the game is finished
 //
 //	grhandle = open(GREXT"GRAPH."EXTENSION, O_RDONLY | O_BINARY); NOLAN
-	grhandle = open("KDREAMS.EGA", O_RDONLY);
+	grhandle = open("KDREAMS.EGA", O_RDONLY | O_BINARY);
 	if (grhandle == -1)
 		Quit ("Cannot open KDREAMS.EGA!");
 
@@ -513,6 +509,86 @@ void CAL_SetupGrFile (void)
 
 //==========================================================================
 
+void CAL_SetupGrFileCGA (void)
+{
+	int handle;
+	uint32_t headersize,length;
+	memptr compseg;
+
+#ifdef GRHEADERLINKED
+	grhuffman = (huffnode *)&CGAdict;
+	grstarts = (uint32_t  *)(&CGAhead);
+	CAL_OptimizeNodes (grhuffman);
+#else
+
+//
+// load ???dict.ext (huffman dictionary for graphics files)
+//
+
+	if ((handle = open(GREXT"DICT.CGA",
+//	if ((handle = open("KDREAMS.EGA",
+		 O_RDONLY | O_BINARY)) == -1)
+		Quit ("Can't open EGADICT.CGA!");
+
+	read(handle, &grhuffman, sizeof(grhuffman));
+	close(handle);
+	CAL_OptimizeNodes (grhuffman);
+//
+// load the data offsets from ???head.ext
+//
+	MM_GetPtr ((memptr)&grstarts,(NUMCHUNKS+1)*4);
+
+	if ((handle = open(GREXT"HEAD.CGA",
+		 O_RDONLY | O_BINARY)) == -1)
+		Quit ("Can't open "GREXT"HEAD.CGA!");
+
+	CA_FarRead(handle, (memptr)grstarts, (NUMCHUNKS+1)*4);
+
+	close(handle);
+
+
+#endif
+
+//
+// Open the graphics file, leaving it open until the game is finished
+//
+//	grhandle = open(GREXT"GRAPH."EXTENSION, O_RDONLY | O_BINARY); NOLAN
+	grhandle = open("KDREAMS.CGA", O_RDONLY | O_BINARY);
+	if (grhandle == -1)
+		Quit ("Cannot open KDREAMS.CGA!");
+
+
+//
+// load the pic and sprite headers into the arrays in the data segment
+//
+#if NUMPICS>0
+	MM_GetPtr((memptr)&pictable,NUMPICS*sizeof(pictabletype));
+	CAL_GetGrChunkLength(STRUCTPIC);		// position file pointer
+	MM_GetPtr(&compseg,chunkcomplen);
+	CA_FarRead (grhandle,compseg,chunkcomplen);
+	CAL_HuffExpand (compseg, (byte  *)pictable,NUMPICS*sizeof(pictabletype),grhuffman);
+	MM_FreePtr(&compseg);
+#endif
+
+#if NUMPICM>0
+	MM_GetPtr((memptr)&picmtable,NUMPICM*sizeof(pictabletype));
+	CAL_GetGrChunkLength(STRUCTPICM);		// position file pointer
+	MM_GetPtr(&compseg,chunkcomplen);
+	CA_FarRead (grhandle,compseg,chunkcomplen);
+	CAL_HuffExpand (compseg, (byte  *)picmtable,NUMPICM*sizeof(pictabletype),grhuffman);
+	MM_FreePtr(&compseg);
+#endif
+
+#if NUMSPRITES>0
+	MM_GetPtr((memptr)&spritetable,NUMSPRITES*sizeof(spritetabletype));
+	CAL_GetGrChunkLength(STRUCTSPRITE);	// position file pointer
+	MM_GetPtr(&compseg,chunkcomplen);
+	CA_FarRead (grhandle,compseg,chunkcomplen);
+	CAL_HuffExpand (compseg, (byte  *)spritetable,NUMSPRITES*sizeof(spritetabletype),grhuffman);
+	MM_FreePtr(&compseg);
+#endif
+
+}
 
 /*
 ======================
@@ -534,7 +610,7 @@ void CAL_SetupMapFile (void)
 #ifndef MAPHEADERLINKED
 	if ((handle = open("MAPHEAD."EXTENSION,
 //	if ((handle = open("KDREAMS.MAP",
-		 O_RDONLY)) == -1)
+		 O_RDONLY | O_BINARY)) == -1)
 		Quit ("Can't open KDREAMS.MAP!");
 	length = CAL_filelength(handle);
 	MM_GetPtr ((memptr)&tinf,length);
@@ -544,7 +620,7 @@ void CAL_SetupMapFile (void)
 //
 // load mapdict.ext (huffman tree)
 //
-	if ((handle = open("MAPDICT."EXTENSION, O_RDONLY)) == -1)
+	if ((handle = open("MAPDICT."EXTENSION, O_RDONLY | O_BINARY)) == -1)
 		Quit ("Can't open MAPDICT."EXTENSION"!");
 	length = CAL_filelength(handle);
 	//assert(length == 1020);
@@ -595,13 +671,13 @@ void CAL_SetupAudioFile (void)
 //
 #ifndef AUDIOHEADERLINKED
 #ifdef AUDIOCOMPRESSED
-	if ((handle = open("AUDIOHHD."EXTENSION,
+	if ((handle = open("SOUNDHHD."EXTENSION,
 		 O_RDONLY)) == -1)
-		Quit ("Can't open AUDIOHHD."EXTENSION"!");
+		Quit ("Can't open SOUNDHHD."EXTENSION"!");
 #else
-	if ((handle = open("AUDIOHED."EXTENSION,
+	if ((handle = open("SOUNDHED."EXTENSION,
 		 O_RDONLY)) == -1)
-		Quit ("Can't open AUDIOHED."EXTENSION"!");
+		Quit ("Can't open SOUNDHED."EXTENSION"!");
 #endif
 	length = CAL_filelength(handle);
 	MM_GetPtr ((memptr)&audiostarts,length);
@@ -611,8 +687,8 @@ void CAL_SetupAudioFile (void)
 //
 // load audiodct.ext (huffman tree)
 //
-	if ((handle = open("AUDIODCT."EXTENSION, O_RDONLY)) == -1)
-		Quit ("Can't open AUDIODCT."EXTENSION"!");
+	if ((handle = open("SOUNDDCT."EXTENSION, O_RDONLY | O_BINARY)) == -1)
+		Quit ("Can't open SOUNDDCT."EXTENSION"!");
 	length = CAL_filelength(handle);
 	//assert(length >= 1020);
 	CA_FarRead(handle, audiohuffman, sizeof(audiohuffman));
@@ -628,14 +704,14 @@ void CAL_SetupAudioFile (void)
 // open the data file
 //
 #if !defined(AUDIOHEADERLINKED) && !defined(AUDIOCOMPRESSED)
-	if ((audiohandle = open("AUDIOT."EXTENSION,
-		 O_RDONLY)) == -1)
-		Quit ("Can't open AUDIOT."EXTENSION"!");
+	if ((audiohandle = open("SOUNDT."EXTENSION,
+		 O_RDONLY | O_BINARY)) == -1)
+		Quit ("Can't open SOUNDT."EXTENSION"!");
 #else
 //	if ((audiohandle = open("AUDIO."EXTENSION,	NOLAN
-	if ((audiohandle = open("KDREAMS.AUD",
-		 O_RDONLY)) == -1)
-		Quit ("Can't open KDREAMS.AUD!");
+	if ((audiohandle = open("KDREAMS.SND",
+		 O_RDONLY | O_BINARY)) == -1)
+		Quit ("Can't open KDREAMS.SND!");
 #endif
 }
 
@@ -660,7 +736,10 @@ void CA_Startup (void)
 #endif
 
 	CAL_SetupMapFile ();
-	CAL_SetupGrFile ();
+	if (fakecga)
+		CAL_SetupGrFileCGA();
+	else
+		CAL_SetupGrFile ();
 	CAL_SetupAudioFile ();
 
 	mapon = -1;
@@ -1010,6 +1089,29 @@ void CAL_ReadGrChunk (int chunk)
 		MM_FreePtr(&bigbufferseg);
 }
 
+/*
+======================
+=
+= CA_ReloadGrChunks
+=
+= Re-loads all presently loaded graphics chunks from disk
+=
+======================
+*/
+
+void CA_ReloadGrChunks ()
+{
+	if (fakecga)
+		CAL_SetupGrFileCGA();
+	else
+		CAL_SetupGrFile();
+	int  i = 0;
+	for (i = 0; i < NUMCHUNKS; ++i)
+	{
+		if (grsegs[i])
+			CAL_ReadGrChunk(i);
+	}
+}
 
 /*
 ======================
@@ -1399,7 +1501,7 @@ void CA_CacheMarks (char *title, boolean cachedownlevel)
 				{
 					for (x=lastx;x<=xh;x++)
 #if GRMODE == EGAGR
-						VWB_Vlin (thy,thy+13,x,14);
+						VWB_Vlin (thy,thy+13,x,fakecga?SECONDCOLOR:14);
 #endif
 #if GRMODE == CGAGR
 						VWB_Vlin (thy,thy+13,x,SECONDCOLOR);

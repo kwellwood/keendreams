@@ -1,5 +1,6 @@
-/* Keen Dreams Source Code
+/* Keen Dreams (SDL2/Steam Port) Source Code
  * Copyright (C) 2014 Javier M. Chavez
+ * Copyright (C) 2015 David Gow <david@davidgow.net>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -143,6 +144,7 @@ void	FixScoreBox (void)
 	byte	far	*dest;
 
 // draw boobus bomb if on level 15, else flower power
+	if (!grsegs[SCOREBOXSPR]) return;
 	spr = &spritetable[SCOREBOXSPR - STARTSPRITES];
 	width = spr->width * 8;
 	planesize = spr->width * 8 * spr->height;
@@ -162,6 +164,12 @@ void	FixScoreBox (void)
 		MemDrawChar (30,dest+width*8,width,planesize);
 		MemDrawChar (31,dest+width*8+8,width,planesize);
 	}
+	
+	// force the rest of the scorebox to be updated, we may have switched from
+	// ega <-> cga
+	*((long *)&(scoreobj->temp1)) = -1;		// force score to be updated
+	scoreobj->temp3 = -1;			// and flower power
+	scoreobj->temp4 = -1;			// and lives
 
 }
 
@@ -313,7 +321,7 @@ void ScoreThink (objtype *ob)
 	{
 		width = spr->width * 8;
 		planesize = spr->width * spr->height * 8;
-		dest = grsegs[SCOREBOXSPR]
+		dest = (byte *)grsegs[SCOREBOXSPR]
 			+ width*20 + 2*8;
 
 		if (gamestate.lives>9)
@@ -1551,7 +1559,7 @@ void KeenGoSleepThink (objtype *ob)
 	new->ydir = -1;
 	NewState (new,&s_keenzee1);
 
-	ob->temp1 = (intptr_t)new;				// so they can be removed later
+	ob->temp1 = ObjToInt(new);				// so they can be removed later
 }
 
 
@@ -1569,8 +1577,8 @@ void KeenSleepThink (objtype *ob)
 {
 	if (c.dir != dir_None || c.button0 || c.button1)
 	{
-		if (ob->temp1 != (intptr_t)&dummyobj)
-			RemoveObj ((objtype *)ob->temp1);	// remove the zees
+		if (ob->temp1 != ObjToInt(&dummyobj))
+			RemoveObj (IntToObj(ob->temp1));	// remove the zees
 		ob->temp1 = ob->temp2 = 0;			// not paused any more
 		ob->state = &s_keengetup;
 	}
@@ -2204,7 +2212,10 @@ void	KeenContact (objtype *ob, objtype *hit)
 		}
 		else
 		{
-			SD_PlaySound (NOWAYSND);
+			// davidgow - Don't bother playing NOWAYSND if the door
+			// is already opening. (Thanks NY00123)
+			if (hit->state != &s_doorraise)
+				SD_PlaySound (NOWAYSND);
 			ClipToSpriteSide (ob,hit);
 		}
 		break;
@@ -2226,6 +2237,18 @@ void	KeenContact (objtype *ob, objtype *hit)
 		break;
 	case	cartobj:
 		ClipToSprite (ob,hit,true);
+		// XXX(davidgow): This does not happen in the original game
+		// leading to a bug where Keen ends up on an 'invisible pole'
+		// after being pushed by a cart.
+		if (ob->state == &s_keenpole && !ob->needtoclip)		// got pushed off a pole
+		{
+			SD_PlaySound (PLUMMETSND);
+			ob->needtoclip = true;
+			ob->xspeed = ob->yspeed = 0;
+			ChangeState(ob,&s_keenjump3);
+			ob->temp2 = 1;
+			jumptime = 0;
+		}
 		break;
 	case	broccoobj:
 		if (hit->state == &s_broccosmash3 || hit->state == &s_broccosmash4)
