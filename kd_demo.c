@@ -1,5 +1,6 @@
-/* Keen Dreams Source Code
+/* Keen Dreams (SDL2/Steam Port) Source Code
  * Copyright (C) 2014 Javier M. Chavez
+ * Copyright (C) 2015 David Gow <david@davidgow.net>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -71,9 +72,11 @@ void NewGame (void)
 	gamestate.score = 0;
 	gamestate.nextextra = 20000;
 	gamestate.lives = 3;
+	gamestate.keys = 0;
 	gamestate.flowerpowers = gamestate.boobusbombs = 0;
 	for (i = 0;i < GAMELEVELS;i++)
 		gamestate.leveldone[i] = false;
+	STAT_ValidateGame();
 }
 
 //===========================================================================
@@ -308,6 +311,10 @@ LoadGame(int file)
 	scoreobj->temp3 = -1;			// and flower power
 	scoreobj->temp4 = -1;			// and lives
 
+	// A loaded game is not valid for whole-game achievements,
+	// or per-map achievements on the loaded map.
+	STAT_Invalidate();
+
 	return(true);
 }
 
@@ -424,6 +431,8 @@ DemoLoop (void)
 #if CREDITS
 	char *FileName2;
 	struct Shape FileShape2;
+	char *FileName3;
+	struct Shape FileShape3;
 #endif
 	//struct ffblk ffblk;
 	WindowRec	mywin;
@@ -456,15 +465,19 @@ DemoLoop (void)
 	while (true)
 	{
 
+		boolean titlever = fakecga;
 		loadedgame = false;
 
-		FileName1 = "TITLESCR.LBM";
+		FileName1 = fakecga?"TITLECGA.LBM":"TITLESCR.LBM";
 		if (LoadLIBShape("KDREAMS.CMP", FileName1, &FileShape1))
 			Quit("Can't load TITLE SCREEN");
 #if CREDITS
-		FileName2 = "CREDITS.LBM";
+		FileName2 = "CREDITS1.LBM";
 		if (LoadLIBShape("KDREAMS.CMP", FileName2, &FileShape2))
-			Quit("Can't load CREDITS SCREEN");
+			Quit("Can't load CREDITS SCREEN 1");
+		FileName3 = "CREDITS2.LBM";
+		if (LoadLIBShape("KDREAMS.CMP", FileName3, &FileShape3))
+			Quit("Can't load CREDITS SCREEN 3");
 #endif
 
 		while (!restartgame && !loadedgame)
@@ -478,6 +491,12 @@ DemoLoop (void)
 
 				VW_SetScreen(0, 0);
 				MoveGfxDst(0, 200);
+				if (titlever != fakecga)
+				{
+					FileName1 = fakecga?"TITLECGA.LBM":"TITLESCR.LBM";
+					if (LoadLIBShape("KDREAMS.CMP", FileName1, &FileShape1))
+						Quit("Can't load TITLE SCREEN");
+				}
 				UnpackEGAShapeToScreen(&FileShape1, 0, 0);
 				VW_ScreenToScreen (64*8*200,0,40*8,200);
 				VW_GL_UpdateGLBuffer();
@@ -492,14 +511,25 @@ DemoLoop (void)
 #endif
 
 #if CREDITS
-				MoveGfxDst(0, 200);
-				UnpackEGAShapeToScreen(&FileShape2, 0, 0);
-				VW_ScreenToScreen (64*8*200,0,40*8,200);
-				VW_GL_UpdateGLBuffer();
-				VW_GL_Present();
+				if (!fakecga)
+				{
+					MoveGfxDst(0, 200);
+					UnpackEGAShapeToScreen(&FileShape2, 0, 0);
+					VW_ScreenToScreen (64*8*200,0,40*8,200);
+					VW_GL_UpdateGLBuffer();
+					VW_GL_Present();
 
-				if (IN_UserInput(TickBase * 7, false))
-					break;
+					if (IN_UserInput(TickBase * 7, false))
+						break;
+
+					UnpackEGAShapeToScreen(&FileShape3, 0, 0);
+					VW_ScreenToScreen (64*8*200,0,40*8,200);
+					VW_GL_UpdateGLBuffer();
+					VW_GL_Present();
+
+					if (IN_UserInput(TickBase * 7, false))
+						break;
+				}
 #else
 				MoveGfxDst(0, 200);
 				UnpackEGAShapeToScreen(&FileShape1, 0, 0);
@@ -513,7 +543,8 @@ DemoLoop (void)
 
 				displayofs = 0;
 				VWB_Bar(0,0,320,200,FIRSTCOLOR);
-				US_DisplayHighScores(-1);
+//				US_DisplayHighScores(-1);
+				US_DisplayLeaderboards();
 				VW_GL_UpdateGLBuffer();
 				VW_GL_Present();
 

@@ -1,5 +1,6 @@
-/* Keen Dreams Source Code
+/* Keen Dreams (SDL2/Steam Port) Source Code
  * Copyright (C) 2014 Javier M. Chavez
+ * Copyright (C) 2015 David Gow <david@davidgow.net>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -96,6 +97,10 @@ int			cursornumber,cursorwidth,cursorheight,cursorx,cursory;
 memptr		cursorsave;
 unsigned	cursorspot;
 boolean		cursorhw = true;			// Are we using a hardware cursor?
+boolean		fakecga = false;
+boolean		aspectcorrect = true;
+boolean		hiddencard = false;
+boolean		noglcard = false;
 
 extern	unsigned	bufferwidth,bufferheight;	// used by font drawing stuff
 
@@ -110,13 +115,14 @@ extern	unsigned	bufferwidth,bufferheight;	// used by font drawing stuff
 =======================
 */
 
-static	char *ParmStrings[] = {"HIDDENCARD", "FULLSCREEN", ""};
+static	char *ParmStrings[] = {"HIDDENCARD", "WINDOWED", "NOASPECT", "NOCARD", "NOGLCARD", ""};
 
+void VW_GL_SetIcon(SDL_Window *wnd);
 void	VW_Startup (void)
 {
 	int i;
-	int fullscreen = false;
-	SDL_Init(SDL_INIT_VIDEO);
+	int fullscreen = true;
+	SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER);
 
 
 	videocard = 0;
@@ -126,11 +132,20 @@ void	VW_Startup (void)
 		int p = US_CheckParm(_argv[i],ParmStrings);
 		if (p == 0)
 		{
+			hiddencard = true;
 			videocard = EGAcard;
 		}
 		else if (p == 1)
 		{
-			fullscreen = true;
+			fullscreen = false;
+		}
+		else if (p == 2)
+		{
+			aspectcorrect = false;
+		}
+		else if (p == 3 || p == 4)
+		{
+			noglcard = true;
 		}
 	}
 
@@ -155,15 +170,25 @@ Quit ("Improper video card!  If you really have a CGA card that I am not \n"
 
 	cursorvisible = 0;
 	
+	SDL_DisplayMode dm;
+	SDL_GetDesktopDisplayMode(0, &dm);
+	int h = 200;
+	while (h + 200 < dm.h)
+		h += 200;
+	int w = h * 4 / 3;
+	
 	VWL_SetupVideoMemory();
-	window = SDL_CreateWindow("Keen Dreams", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1024, 768, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
+	window = SDL_CreateWindow("Keen Dreams", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, w, h, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
 	SDL_SetWindowMinimumSize(window, 320, 200);
 	if (fullscreen)
 		SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+
+	VW_GL_SetIcon(window);
 	glcontext = SDL_GL_CreateContext(window);
 	glewInit();
 	glViewport(0,0,320,200);
 	VW_GL_Init();
+	VW_SetDefaultColors();
 }
 
 //===========================================================================
@@ -243,6 +268,8 @@ char colors[7][17]=
  {0,1,2,3,4,5,6,7,0x1f,0x1f,0x1f,0x1f,0x1f,0x1f,0x1f,0x1f,0},
  {0x1f,0x1f,0x1f,0x1f,0x1f,0x1f,0x1f,0x1f,0x1f,0x1f,0x1f,0x1f,0x1f,0x1f,0x1f,0x1f,0x1f}};
 
+char cgacolors[17] =
+ {0,0x1b,0x1d,0x1f,0,0x1b,0x1d,0x1f,0x1f,0x1f,0x1f,0x1f,0x1f,0x1f,0x1f,0x1f,0};
 
 void VW_ColorBorder (int color)
 {
@@ -252,73 +279,88 @@ void VW_ColorBorder (int color)
 
 void VW_SetDefaultColors(void)
 {
-#if GRMODE == EGAGR
-	colors[3][16] = bordercolor;
-	VW_GL_SetEGAPalette(colors[3]);
-	screenfaded = false;
-#endif
+	if (fakecga)
+		VW_GL_SetEGAPalette(cgacolors);
+	else
+	{
+		colors[3][16] = bordercolor;
+		VW_GL_SetEGAPalette(colors[3]);
+		screenfaded = false;
+	}
 }
 
 
 void VW_FadeOut(void)
 {
-#if GRMODE == EGAGR
-	int i;
-
-	for (i=3;i>=0;i--)
+	if (fakecga)
+		VW_GL_SetEGAPalette(cgacolors);
+	else
 	{
-		colors[i][16] = bordercolor;
-		VW_GL_SetEGAPalette(colors[i]);
-		VW_WaitVBL(6);
+		int i;
+
+		for (i=3;i>=0;i--)
+		{
+			colors[i][16] = bordercolor;
+			VW_GL_SetEGAPalette(colors[i]);
+			VW_WaitVBL(6);
+		}
+		screenfaded = true;
 	}
-	screenfaded = true;
-#endif
 }
 
 
 void VW_FadeIn(void)
 {
-#if GRMODE == EGAGR
-	int i;
-
-	for (i=0;i<4;i++)
+	if (fakecga)
+		VW_GL_SetEGAPalette(cgacolors);
+	else
 	{
-		colors[i][16] = bordercolor;
-		VW_GL_SetEGAPalette(colors[i]);
-		VW_WaitVBL(6);
+		int i;
+
+		for (i=0;i<4;i++)
+		{
+			colors[i][16] = bordercolor;
+			VW_GL_SetEGAPalette(colors[i]);
+			VW_WaitVBL(6);
+		}
+		screenfaded = false;
 	}
-	screenfaded = false;
-#endif
 }
 
 void VW_FadeUp(void)
 {
-#if GRMODE == EGAGR
-	int i;
-
-	for (i=3;i<6;i++)
+	if (fakecga)
+		VW_GL_SetEGAPalette(cgacolors);
+	else
 	{
-		colors[i][16] = bordercolor;
-		VW_GL_SetEGAPalette(colors[i]);
-		VW_WaitVBL(6);
+		int i;
+
+		for (i=3;i<6;i++)
+		{
+			colors[i][16] = bordercolor;
+			VW_GL_SetEGAPalette(colors[i]);
+			VW_WaitVBL(6);
+		}
+		screenfaded = true;
 	}
-	screenfaded = true;
-#endif
 }
 
 void VW_FadeDown(void)
 {
-#if GRMODE == EGAGR
-	int i;
-
-	for (i=5;i>2;i--)
+	if (fakecga)
+		VW_GL_SetEGAPalette(cgacolors);
+	else
 	{
-		colors[i][16] = bordercolor;
-		VW_GL_SetEGAPalette(colors[i]);
-		VW_WaitVBL(6);
+		int i;
+
+		for (i=5;i>2;i--)
+		{
+			colors[i][16] = bordercolor;
+			VW_GL_SetEGAPalette(colors[i]);
+			VW_WaitVBL(6);
+		}
+		screenfaded = false;
 	}
-	screenfaded = false;
-#endif
 }
 
 
@@ -671,6 +713,11 @@ void VWL_DrawCursor (void)
 		VW_RawScreenToMem(cursorspot,cursorsave,cursorwidth,cursorheight);
 		VWB_DrawSprite(cursorx,cursory,cursornumber);
 	}
+	else
+	{
+		// Some touchscreen devices will force-hide the cursor, so reshow it every frame.
+		SDL_ShowCursor(cursorvisible);
+	}
 }
 
 
@@ -713,9 +760,14 @@ void VW_ShowCursor (void)
 	cursorvisible++;
 	if (cursorhw)
 	{
-		SDL_ShowCursor(cursorvisible);
+		SDL_ShowCursor(cursorvisible > 0);
+		SDL_SetRelativeMouseMode(!(cursorvisible > 0));
 	}
-	SDL_SetRelativeMouseMode(!cursorvisible);
+	else
+	{
+		SDL_ShowCursor(false);
+		SDL_SetRelativeMouseMode(true);
+	}
 }
 
 
@@ -734,9 +786,14 @@ void VW_HideCursor (void)
 	cursorvisible--;
 	if (cursorhw)
 	{
-		SDL_ShowCursor(cursorvisible);
+		SDL_ShowCursor(cursorvisible > 0);
+		SDL_SetRelativeMouseMode(!(cursorvisible > 0));
 	}
-	SDL_SetRelativeMouseMode(!cursorvisible);
+	else
+	{
+		SDL_ShowCursor(false);
+		SDL_SetRelativeMouseMode(true);
+	}
 }
 
 //==========================================================================
@@ -755,7 +812,7 @@ void VW_MoveCursor (int x, int y)
 	{
 		int vx, vy, vw, vh;
 		VW_GL_GetViewport(&vx, &vy, &vw, &vh);
-		SDL_WarpMouseInWindow(window, x*vw/320+vx, y*vh/200+vx);
+		SDL_WarpMouseInWindow(window, x*vw/320+vx, y*vh/200+vy);
 	}
 	cursorx = x;
 	cursory = y;
@@ -783,6 +840,9 @@ void VW_SetCursor (int spritenum)
 	}
 
 	cursornumber = spritenum;
+
+	if (!spritenum)
+		return;
 
 	CA_CacheGrChunk (spritenum);
 	MM_SetLock (&grsegs[cursornumber],true);

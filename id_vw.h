@@ -1,5 +1,6 @@
-/* Keen Dreams Source Code
+/* Keen Dreams (SDL2/Steam Port) Source Code
  * Copyright (C) 2014 Javier M. Chavez
+ * Copyright (C) 2015 David Gow <david@davidgow.net>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -73,14 +74,14 @@
 
 #define	MAXSHIFTS		8
 
-#define WHITE			15			// graphics mode independant colors
+#define WHITE			(fakecga?3:15)			// graphics mode independant colors
 #define BLACK			0
 #define FIRSTCOLOR		1
-#define SECONDCOLOR		12
+#define SECONDCOLOR		(fakecga?2:12)
 #define F_WHITE			0			// for XOR font drawing
-#define F_BLACK			15
-#define F_FIRSTCOLOR	14
-#define F_SECONDCOLOR	3
+#define F_BLACK			(fakecga?3:15)
+#define F_FIRSTCOLOR	(fakecga?2:14)
+#define F_SECONDCOLOR	(fakecga?1:3)
 
 #endif
 
@@ -146,7 +147,7 @@
 typedef enum {NOcard,MDAcard,CGAcard,EGAcard,MCGAcard,VGAcard,
 		  HGCcard=0x80,HGCPcard,HICcard} cardtype;
 
-typedef struct __attribute__((__packed__))
+PACKED(spritetabletype)
 {
   int16_t	width,
 		height,
@@ -155,13 +156,13 @@ typedef struct __attribute__((__packed__))
 		shifts;
 } spritetabletype;
 
-typedef struct __attribute__((__packed__))
+PACKED(pictabletype)
 {
 	int16_t width,height;
 } pictabletype;
 
 
-typedef struct __attribute__((__packed__))
+PACKED(fontstruct)
 {
 	int16_t height;
 	int16_t location[256];
@@ -175,6 +176,8 @@ typedef enum {CGAgr,EGAgr,VGAgr} grtype;
 
 extern	cardtype	videocard;		// set by VW_Startup
 extern	grtype		grmode;			// CGAgr, EGAgr, VGAgr
+extern	boolean		fakecga;		// is fake cga mode enabled (cga pallete + behaviour)
+extern	boolean		aspectcorrect;		// Correct aspect ratio.
 
 extern	unsigned	bufferofs;		// hidden port to draw to before displaying
 extern	unsigned	displayofs;		// origin of port on visable screen
@@ -203,6 +206,7 @@ extern	byte		pdrawmode,fontcolor;
 //
 
 extern	word 		**shifttabletable;
+extern uint8_t VW_CurrentRGBPalette[16][3];
 
 
 //===========================================================================

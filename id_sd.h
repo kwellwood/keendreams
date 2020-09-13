@@ -1,5 +1,6 @@
-/* Keen Dreams Source Code
+/* Keen Dreams (SDL2/Steam Port) Source Code
  * Copyright (C) 2014 Javier M. Chavez
+ * Copyright (C) 2015 David Gow <david@davidgow.net>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -45,7 +46,7 @@ typedef	enum	{
 					smm_Off,smm_AdLib
 				}	SMMode;
 
-typedef	struct __attribute__((__packed__))
+PACKED(SoundCommon)
 		{
 			longword	length;
 			word		priority;
@@ -58,7 +59,7 @@ typedef	struct __attribute__((__packed__))
 
 #define	pcSpkBits	3
 
-typedef	struct __attribute__((__packed__))
+PACKED(PCSound)
 		{
 			SoundCommon	common;
 			byte		data[1];
@@ -72,7 +73,7 @@ typedef	struct __attribute__((__packed__))
 #define	sbWriteStat	0x20c
 #define	sbDataAvail	0x20e
 
-typedef	struct __attribute__((__packed__))
+PACKED(SampledSound)
 		{
 			SoundCommon	common;
 			word		hertz;
@@ -95,7 +96,7 @@ typedef	struct __attribute__((__packed__))
 // Global stuff
 #define	alEffects	0xbd
 
-typedef	struct __attribute__((__packed__))
+PACKED(Instrument)
 		{
 			byte	mChar,cChar,
 					mScale,cScale,
@@ -106,7 +107,7 @@ typedef	struct __attribute__((__packed__))
 					unused[5];
 		} Instrument;
 
-typedef	struct __attribute__((__packed__))
+PACKED(AdLibSound)
 		{
 			SoundCommon	common;
 			Instrument	inst;
@@ -130,14 +131,14 @@ typedef	struct __attribute__((__packed__))
 #define	sev_PercOff		7	// Turns a percussive note off
 #define	sev_SeqEnd		-1	// Terminates a sequence
 
-typedef	struct __attribute__((__packed__))
+PACKED(MusicGroup)
 		{
 			word	flags,
 					count,
 					offsets[1];
 		} MusicGroup;
 
-typedef	struct __attribute__((__packed__))
+PACKED(ActiveTrack)
 		{
 			/* This part needs to be set up by the user */
 			word        mood,*moods[sqMaxMoods];

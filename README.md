@@ -1,10 +1,70 @@
-# Commander Keen in Keen Dreams
+# Commander Keen in Keen Dreams (Steam Release)
 
-This repository contains the source for Commander Keen in Keen Dreams.  It is released under the GNU GPLv2+.  See LICENSE for more details.
+This repository contains (most of) the source for (an older version of) the Steam Release Commander Keen in Keen Dreams. 
 
-The release of the source code does not affect the licensing of the game data files, which you must still legally acquire.  This includes the static data included in this repository for your convenience.  However, you are permitted to link and distribute that data for the purposes of compatibility with the original game.
+It is released under the GNU GPLv2+. See LICENSE for more details.
 
-This release was made possible by a crowdfunding effort.  It is brought to you by Javier M. Chavez and Chuck Naaden with additional support from:
+The release of the source code does not affect the licensing of the game data files, which you must still legally acquire. Note that the data files for the Steam version do not quite match the data files for any of the previous versions.
+
+*Note that the Steam version of Keen Dreams is no-longer available for purchase, so it may not be possible to acquire the data files if you don't already have them!*
+
+# What does this contain?
+
+This contains a version of the code from *before* Nightdive Studios took over, and hired the great Ryan C. Gordon to [fix and update the port](https://www.patreon.com/posts/15286078). It therefore does not contain any of the fixes within.
+
+It does not contain any of the data files for the game, including graphics, sounds, story text, and the headers/compression dictionaries needed to load them.
+
+It also is missing some of the later code from the Windows version, so it probably only builds on Linux at the moment. It also does not contain the actual Steam integration code, which required the Valve Steam SDK. There's a null backend for that in ``kd_stat_null.c``, originally the Steam backend was in ``kd_stat_steam.cpp``.
+
+# How do I compile it?
+
+Keen Dreams is built with CMake, and needs a C99-compatible compiler. It depends on [SDL 2.0](https://libsdl.org), OpenGL, and [GLEW](http://glew.sourceforge.net/).
+
+Compiling it should be straightforward:
+	mkdir build
+	cd build
+	cmake ..
+	make
+
+Once compiled, it needs to be in a directory with the datafiles from the Steam version:
+
+* ``CONTEXT.KDR``
+* ``EGADICT.CGA``
+* ``EGADICT.KDR``
+* ``EGAHEAD.CGA``
+* ``EGAHEAD.KDR``
+* ``GAMETEXT.KDR``
+* ``KDREAMS.CGA``
+* ``KDREAMS.CMP``
+* ``KDREAMS.EGA``
+* ``KDREAMS.MAP``
+* ``KDREAMS.SND``
+* ``MAPDICT.KDR``
+* ``MAPHEAD.KDR``
+* ``SOUNDDCT.KDR``
+* ``SOUNDHHD.KDR``
+* ``STORY.KDR``
+
+There are various modding tools available which could be able to create or modify files in these formats: they're all compatible with the original DOS game, with the following exceptions:
+
+* The CGA files are actually EGA files containing only the CGA colours.
+* The ``KDREAMS.CMP`` file contains extra files. In addition to the ``TITLESCR.LBM`` file, there is also a CGA title screen: ``TITLECGA.LBM``, and two pages of credits: ``CREDITS1.LBM`` and ``CREDITS2.LBM``. These are all EGA Deluxepaint II files.
+* The sound files are in a custom DPCM format. The code used to produce them is in the ``sound/`` directory.
+
+# Credits
+
+Keen Dreams was originally developed by id Software for Softdisk publishing.
+
+This port was largely done by David Gow, with additional code by Emma Krantz and Braden Obrzut. 
+
+Extra-special thanks must also go to NY00123, whose [RefKeen project](https://github.com/NY00123/refkeen) is also able to load the Steam version's files, and to Ryan C. Gordon for fixing many bugs in later versions. Thanks, too, to everyone who worked on the [Omnispeak](https://davidgow.net/keen/omnispeak.html), particularly NY00123 and lemm.
+
+Copyright for Keen Dreams is held by Javier M. Chavez. Copyright for this port is held by its contributors.
+Commander Keen is a registered trademark of id Software, LLC (A Zanimax Company).
+
+The original Keen Dreams source release was made possible by a crowdfunding effort. 
+
+It was brought to you by Javier M. Chavez and Chuck Naaden with additional support from:
 
 * Dave Allen
 * Kirill Illenseer
@@ -19,40 +79,3 @@ This release was made possible by a crowdfunding effort.  It is brought to you b
 * Steven Zakulec
 * et al
 
-## Compiling
-
-The code is designed for Borland C++ 2.0, but all revisions compiled fine under 3.1 at the time of release.
-
-There is some data that must be compiled into the binary.  This data is located in the static directory.  To prepare the source for building, make sure Borland C++ is in your *PATH* and then run `make.bat`.
-
-You may now go to the root directory and type `bc` to open the project and build.  You may need to configure your directories in Borland for it to compile properly.
-
-### EGA/CGA Version
-
-Version 1.00 can be built for either EGA or CGA by changing a constant.  All later versions are specific to one mode.  The constant is `GRMODE` in ID_HEADS.H and ID_ASM.EQU.  Finally ensure that the proper static data files are being linked.  KDREDICT.OBJ/KDREHEAD.OBJ for EGA and KDRCDICT.OBJ/KDRCHEAD.OBJ for CGA.
-
-## Revision History
-
-> A little confusing because revisions have proceeded in three different sequences, the regular (EGA) version, the CGA version, and the shareware version.  At present, 1.05 is the latest CGA version, 1.93 is the latest EGA version, and 1.20 is the latest shareware version.  Also, some versions with suffixed letters have been used when text and other items changed without recompilation of the program itself.
-
-* 1.00 (not numbered): Original release.
-* 1.01: Version used on Tiger Software marketing deal.
-* 1.01-360: Specially adapted version to fit on 360K disk for Tiger Software marketing deal.
-* 1.01S: (mistakenly labeled 1.01): Shareware version.
-* 1.02: Registered version.
-* 1.03: Registered version (re-mastered edition).
-* 1.04: CGA version.
-* 1.05: Re-master of CGA version without Gamer's Edge references.
-
-*New CGA versions should be numbered 1.06 through 1.12*
-
-* 1.13: Shareware version (re-mastered edition).
-* 1.20: Re-master of shareware version without Gamer's Edge references.
-
-*New shareware versions should be numbered 1.21 through 1.90*
-
-* 1.91: Version for Prodigy Download Superstore.
-* 1.92 [rev 0] : Version for Good Times. The shell is not on this version.
-* 1.93 [rev 1] : Version for catalog.  Uses DocView Shell instead of old GE shell.  Copyrights updated to "1991-1993" with Softdisk Publishing instead of Softdisk, Inc., to suit our present guidelines.  Otherwise the same as Good Times version.
-
-*New EGA versions should be numbered 1.94 and up.*

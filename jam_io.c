@@ -1,5 +1,6 @@
-/* Keen Dreams Source Code
+/* Keen Dreams (SDL2/Steam Port) Source Code
  * Copyright (C) 2014 Javier M. Chavez
+ * Copyright (C) 2015 David Gow <david@davidgow.net>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,7 +23,7 @@
 #include <ctype.h>
 #include <fcntl.h>
 
-#ifdef WIN32
+#ifdef _MSC_VER
 #include <io.h>
 #else
 #include <unistd.h>
@@ -112,7 +113,7 @@ int ReadPtr(void *infile, unsigned PtrType)
 //		break;
 
 		case SRC_MEM:
-			returnval = *(unsigned char  *)(infile++);
+			returnval = (*(unsigned char  *)(infile))++;
 		break;
 	}
 

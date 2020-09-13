@@ -1,5 +1,6 @@
-/* Keen Dreams Source Code
+/* Keen Dreams (SDL2/Steam Port) Source Code
  * Copyright (C) 2014 Javier M. Chavez
+ * Copyright (C) 2015 David Gow <david@davidgow.net>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,8 +26,14 @@
 #define FP_SEG(a) (a)
 #define FP_OFF(a) (a)
 #define MK_FP(a,b) ((a)+(b))
+#ifndef _MSC_VER
 #define stricmp strcasecmp
+#endif
+
 #define movedata(a,b,c,d,e) memmove(b,d,e)
+
+// Hopefully this will work.
+#pragma once
 
 #include <ctype.h>
 #include <errno.h>
@@ -40,6 +47,12 @@
 #define __ID_GLOB__
 
 #define	EXTENSION	"KDR"
+#define PREFPATH_ORG	"Commander Keen"
+#define PREFPATH_NAME	"Keen Dreams"
+
+#ifndef _MSC_VER
+#define O_BINARY 0
+#endif
 
 #include "graphkdr.h"
 #include "audiokdr.h"

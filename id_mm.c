@@ -1,21 +1,20 @@
-/*
-Omnispeak: A Commander Keen Reimplementation
-Copyright (C) 2012 David Gow <david@ingeniumdigital.com>
-
-This program is free software; you can redistribute it and/or
-modify it under the terms of the GNU General Public License
-as published by the Free Software Foundation; either version 2
-of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
-*/
+/* Keen Dreams (SDL2/Steam Port) Source Code
+ * Copyright (C) 2012 David Gow <david@davidgow.net>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
 
 // ID_MM: The Memory Manager
 // The Memory Manager provides a system for allocating and deallocating
@@ -28,12 +27,18 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include "id_heads.h"
 
+#ifdef WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#else
+#include <sys/mman.h>
+#endif
 #include <stdlib.h>
 #include <SDL2/SDL.h>
 
 memptr bufferseg; // Misc buffer
 
-#define MM_MAXBLOCKS	2048 	//1200 in Keen5
+#define MM_MAXBLOCKS	4096 	//1200 in Keen5
 
 typedef struct ID_MM_MemBlock
 {
@@ -134,7 +139,16 @@ void MM_Shutdown(void)
 
 void MM_GetPtr(memptr *ptr, unsigned long size)
 {
-	ID_MM_MemBlock *blk = MML_GetNewBlock();
+	ID_MM_MemBlock *blk = MML_BlockFromUserPointer(ptr);
+	if (blk)
+	{
+		if (blk->length == size) return;
+		free(blk->ptr);
+	}
+	else
+	{
+		blk = MML_GetNewBlock();
+	}
 	//Try to allocate memory, freeing if we can't.
 	do {
 		blk->ptr = malloc(size);
@@ -148,6 +162,7 @@ void MM_GetPtr(memptr *ptr, unsigned long size)
 	} while(!blk->ptr);
 
 	//Setup the block details (unlocked, non-purgable)
+	//#include <sys/mman.h>
 	blk->length = size;
 	blk->userptr = ptr;
 	blk->purgelevel = 0;
@@ -218,6 +233,20 @@ void MM_SetLock(memptr *ptr, boolean lock)
 
 	//Lock/Unlock the block
 	blk->locked = lock;
+
+	// We'll try to lock our memory to prevent it being paged
+	// out in memory-pressured situations.
+#ifdef WIN32
+	if (lock)
+		VirtualLock(blk->ptr, blk->length);
+	else
+		VirtualUnlock(blk->ptr, blk->length);
+#else
+	if (lock)
+		mlock(blk->ptr, blk->length);
+	else
+		munlock(blk->ptr, blk->length);
+#endif
 }
 
 int MM_UsedMemory()
@@ -267,7 +296,7 @@ long MM_UnusedMemory()
 }
 long MM_TotalFree()
 {
-	return MM_SystemMegs() * 1024*1024;
+	return MM_UnusedMemory();
 }
 long MM_SystemMegs()
 {
