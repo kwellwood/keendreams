@@ -1,58 +1,56 @@
-# Commander Keen in Keen Dreams
+# Reflection Keen
 
-This repository contains the source for Commander Keen in Keen Dreams.  It is released under the GNU GPLv2+.  See LICENSE for more details.
+Reflection Keen is a project consisting of source ports of the
+following titles, all being inspired by the Chocolate Doom port:
+- Keen Dreams.
+- Catacomb 3-D (The Descent) and The Catacomb Adventure Series.
+- Wolfenstein 3D, Spear of Destiny and Super 3-D Noah's Ark (DOS version).
 
-The release of the source code does not affect the licensing of the game data files, which you must still legally acquire.  This includes the static data included in this repository for your convenience.  However, you are permitted to link and distribute that data for the purposes of compatibility with the original game.
+## Terms of use
 
-This release was made possible by a crowdfunding effort.  It is brought to you by Javier M. Chavez and Chuck Naaden with additional support from:
+All corresponding license documents should be found under LICENSES.
 
-* Dave Allen
-* Kirill Illenseer
-* Michael Jurich
-* Tom Laermans
-* Jeremy Newman
-* Braden Obrzut
-* Evan Ramos
-* Sam Schultz
-* Matt Stath
-* Ian Williams
-* Steven Zakulec
-* et al
+Since the covered ports are based on multiple codebases with
+varying licenses, the terms are described for each source port
+as a whole, as well as the differing components.
 
-## Compiling
+Note that these terms do not cover any original game data,
+which should be obtained separately.
 
-The code is designed for Borland C++ 2.0, but all revisions compiled fine under 3.1 at the time of release.
+The terms applying to the source ports (i.e., the executables):
 
-There is some data that must be compiled into the binary.  This data is located in the static directory.  To prepare the source for building, make sure Borland C++ is in your *PATH* and then run `make.bat`.
+- Reflection Keen Dreams, Reflection Catacomb and Reflection Wolfenstein 3D
+are all released under the GNU GPLv2+. See gpl-2.0.txt for more details.
 
-You may now go to the root directory and type `bc` to open the project and build.  You may need to configure your directories in Borland for it to compile properly.
+The terms applying to each component separately:
 
-### EGA/CGA Version
+- The ported Keen Dreams, Catacomb 3-D, The Catacomb Adventures Series and
+Wolfenstein 3D codebases are released under the GNU GPLv2+. See gpl-2.0.txt.
 
-Version 1.00 can be built for either EGA or CGA by changing a constant.  All later versions are specific to one mode.  The constant is `GRMODE` in ID_HEADS.H and ID_ASM.EQU.  Finally ensure that the proper static data files are being linked.  KDREDICT.OBJ/KDREHEAD.OBJ for EGA and KDRCDICT.OBJ/KDRCHEAD.OBJ for CGA.
+- The ported Wolfenstein 3D code is also available under the original
+terms for the Wolfenstein 3D sources from 1995. See id-wolf3d.txt.
 
-## Revision History
+- The Reflection Keen back-end and Nuked OPL3 are released
+under the GNU LGPLv2.1+. See lgpl-2.1.txt.
 
-> A little confusing because revisions have proceeded in three different sequences, the regular (EGA) version, the CGA version, and the shareware version.  At present, 1.05 is the latest CGA version, 1.93 is the latest EGA version, and 1.20 is the latest shareware version.  Also, some versions with suffixed letters have been used when text and other items changed without recompilation of the program itself.
+- The included depklite implementation, a modification of ExeUnpacker,
+is released under the MIT License. See mit-opentesarena.txt for details.
 
-* 1.00 (not numbered): Original release.
-* 1.01: Version used on Tiger Software marketing deal.
-* 1.01-360: Specially adapted version to fit on 360K disk for Tiger Software marketing deal.
-* 1.01S: (mistakenly labeled 1.01): Shareware version.
-* 1.02: Registered version.
-* 1.03: Registered version (re-mastered edition).
-* 1.04: CGA version.
-* 1.05: Re-master of CGA version without Gamer's Edge references.
+- The included CRC-32 implementation is in the public domain. The same
+applies to the modified unlzexe source (based on UNLZEXE.DOC from v0.4).
 
-*New CGA versions should be numbered 1.06 through 1.12*
+## How to build from the source code
 
-* 1.13: Shareware version (re-mastered edition).
-* 1.20: Re-master of shareware version without Gamer's Edge references.
+You will need CMake, a compatible C or C++ compiler and SDL2.
+Additionally, SpeexDSP is required for audio resampling.
 
-*New shareware versions should be numbered 1.21 through 1.90*
+While it should be possible to build the code as C,
+you'll have to build more separate executables,
+due to the lack of C++ namespaces.
 
-* 1.91: Version for Prodigy Download Superstore.
-* 1.92 [rev 0] : Version for Good Times. The shell is not on this version.
-* 1.93 [rev 1] : Version for catalog.  Uses DocView Shell instead of old GE shell.  Copyrights updated to "1991-1993" with Softdisk Publishing instead of Softdisk, Inc., to suit our present guidelines.  Otherwise the same as Good Times version.
+This was tested with GNU C and C++ for Linux and Windows builds,
+the latter of which being done with Mingw-w64.
 
-*New EGA versions should be numbered 1.94 and up.*
+## Acknowledgements
+
+See AUTHORS.md.
